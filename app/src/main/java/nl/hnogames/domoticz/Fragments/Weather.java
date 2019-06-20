@@ -24,20 +24,24 @@ package nl.hnogames.domoticz.Fragments;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.support.design.widget.Snackbar;
-import android.support.v4.widget.SwipeRefreshLayout;
+import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
 import android.widget.LinearLayout;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import hugo.weaving.DebugLog;
 import jp.wasabeef.recyclerview.adapters.SlideInBottomAnimationAdapter;
 import nl.hnogames.domoticz.Adapters.WeatherAdapter;
 import nl.hnogames.domoticz.GraphActivity;
+import nl.hnogames.domoticz.Helpers.RVHItemTouchHelperCallback;
 import nl.hnogames.domoticz.Interfaces.DomoticzFragmentListener;
 import nl.hnogames.domoticz.Interfaces.WeatherClickListener;
 import nl.hnogames.domoticz.MainActivity;
@@ -49,10 +53,12 @@ import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.Utils.UsefulBits;
 import nl.hnogames.domoticz.app.DomoticzRecyclerFragment;
 import nl.hnogames.domoticzapi.Containers.Language;
+import nl.hnogames.domoticzapi.Containers.UserInfo;
 import nl.hnogames.domoticzapi.Containers.WeatherInfo;
 import nl.hnogames.domoticzapi.DomoticzValues;
 import nl.hnogames.domoticzapi.Interfaces.WeatherReceiver;
 import nl.hnogames.domoticzapi.Interfaces.setCommandReceiver;
+import nl.hnogames.domoticzapi.Utils.PhoneConnectionUtil;
 
 public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmentListener, WeatherClickListener {
 
@@ -65,7 +71,7 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
     private Animation animShow, animHide;
     private ArrayList<WeatherInfo> mWeatherInfoList;
     private SlideInBottomAnimationAdapter alphaSlideIn;
-
+    private ItemTouchHelper mItemTouchHelper;
 
     @Override
     public void onConnectionFailed() {
@@ -84,10 +90,19 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
     @DebugLog
     public void onAttach(Context context) {
         super.onAttach(context);
+        onAttachFragment(this);
         mContext = context;
-        if (getActionBar() != null)
-            getActionBar().setTitle(R.string.title_weather);
         initAnimation();
+        if (getActionBar() != null)
+            getActionBar().setTitle(getString(R.string.title_weather));
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        onAttachFragment(this);
+        super.onActivityCreated(savedInstanceState);
+        //if (getActionBar() != null)
+        //   getActionBar().setTitle(R.string.title_weather);
     }
 
     @Override
@@ -95,8 +110,22 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
     public void Filter(String text) {
         filter = text;
         try {
-            if (adapter != null)
+            if (adapter != null) {
+                if (UsefulBits.isEmpty(text) &&
+                    (UsefulBits.isEmpty(super.getSort()) || super.getSort().equals(mContext.getString(R.string.filterOn_all))) &&
+                    mSharedPrefs.enableCustomSorting() && !mSharedPrefs.isCustomSortingLocked()) {
+                    if (mItemTouchHelper == null) {
+                        mItemTouchHelper = new ItemTouchHelper(new RVHItemTouchHelperCallback(adapter, true, false,
+                            false));
+                    }
+                    mItemTouchHelper.attachToRecyclerView(gridView);
+                } else {
+                    if (mItemTouchHelper != null)
+                        mItemTouchHelper.attachToRecyclerView(null);
+                }
                 adapter.getFilter().filter(text);
+                adapter.notifyDataSetChanged();
+            }
             super.Filter(text);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -111,10 +140,13 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
     }
 
     private void processWeather() {
-        if (mSwipeRefreshLayout != null)
-            mSwipeRefreshLayout.setRefreshing(true);
+        try {
+            if (mSwipeRefreshLayout != null)
+                mSwipeRefreshLayout.setRefreshing(true);
 
-        new GetCachedDataTask().execute();
+            new GetCachedDataTask().execute();
+        } catch (Exception ex) {
+        }
     }
 
     private void initAnimation() {
@@ -133,6 +165,19 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
             alphaSlideIn.notifyDataSetChanged();
         }
 
+        if (mItemTouchHelper == null) {
+            mItemTouchHelper = new ItemTouchHelper(new RVHItemTouchHelperCallback(adapter, true, false,
+                false));
+        }
+        if ((UsefulBits.isEmpty(super.getSort()) || super.getSort().equals(mContext.getString(R.string.filterOn_all))) &&
+            mSharedPrefs.enableCustomSorting() && !mSharedPrefs.isCustomSortingLocked()) {
+            mItemTouchHelper.attachToRecyclerView(gridView);
+        } else {
+            if (mItemTouchHelper != null)
+                mItemTouchHelper.attachToRecyclerView(null);
+        }
+
+
         mSwipeRefreshLayout.setRefreshing(false);
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -147,9 +192,9 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
 
     private void showInfoDialog(final WeatherInfo mWeatherInfo) {
         WeatherInfoDialog infoDialog = new WeatherInfoDialog(
-                mContext,
-                mWeatherInfo,
-                R.layout.dialog_weather);
+            mContext,
+            mWeatherInfo,
+            R.layout.dialog_weather);
         infoDialog.setWeatherInfo(mWeatherInfo);
         infoDialog.show();
         infoDialog.onDismissListener(new WeatherInfoDialog.DismissListener() {
@@ -166,6 +211,14 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
         addDebugText("changeFavorite");
         addDebugText("Set idx " + mWeatherInfo.getIdx() + " favorite to " + isFavorite);
 
+        UserInfo user = getCurrentUser(mContext, mDomoticz);
+        if (user != null && user.getRights() <= 1) {
+            UsefulBits.showSnackbar(mContext, coordinatorLayout, mContext.getString(R.string.security_no_rights), Snackbar.LENGTH_SHORT);
+            if (getActivity() instanceof MainActivity)
+                ((MainActivity) getActivity()).Talk(R.string.security_no_rights);
+            refreshFragment();
+            return;
+        }
         if (isFavorite) {
             if (getActivity() instanceof MainActivity)
                 ((MainActivity) getActivity()).Talk(R.string.favorite_added);
@@ -183,24 +236,24 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
         else jsonAction = DomoticzValues.Device.Favorite.OFF;
 
         mDomoticz.setAction(mWeatherInfo.getIdx(),
-                jsonUrl,
-                jsonAction,
-                0,
-                null,
-                new setCommandReceiver() {
-                    @Override
-                    @DebugLog
-                    public void onReceiveResult(String result) {
-                        successHandling(result, false);
-                        mWeatherInfo.setFavoriteBoolean(isFavorite);
-                    }
+            jsonUrl,
+            jsonAction,
+            0,
+            null,
+            new setCommandReceiver() {
+                @Override
+                @DebugLog
+                public void onReceiveResult(String result) {
+                    successHandling(result, false);
+                    mWeatherInfo.setFavoriteBoolean(isFavorite);
+                }
 
-                    @Override
-                    @DebugLog
-                    public void onError(Exception error) {
-                        errorHandling(error);
-                    }
-                });
+                @Override
+                @DebugLog
+                public void onError(Exception error) {
+                    errorHandling(error);
+                }
+            });
     }
 
     @Override
@@ -227,9 +280,9 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
     @DebugLog
     public void onLogClick(final WeatherInfo weather, final String range) {
         final String graphType = weather.getTypeImg()
-                .toLowerCase()
-                .replace("temperature", "temp")
-                .replace("visibility", "counter");
+            .toLowerCase()
+            .replace("temperature", "temp")
+            .replace("visibility", "counter");
 
         JSONObject language = null;
         Language languageObj = new SharedPrefUtil(mContext).getSavedLanguage();
@@ -259,7 +312,7 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
     @Override
     @DebugLog
     public void onItemClicked(View v, int position) {
-        LinearLayout extra_panel = (LinearLayout) v.findViewById(R.id.extra_panel);
+        LinearLayout extra_panel = v.findViewById(R.id.extra_panel);
         if (extra_panel != null) {
             if (extra_panel.getVisibility() == View.VISIBLE) {
                 extra_panel.startAnimation(animHide);
@@ -284,8 +337,8 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
 
     @Override
     @DebugLog
-    public boolean onItemLongClicked(int position) {
-        showInfoDialog(adapter.filteredData.get(position));
+    public boolean onItemLongClicked(int idx) {
+        showInfoDialog(getWeather(idx));
         return true;
     }
 
@@ -304,7 +357,11 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
         ArrayList<WeatherInfo> cacheWeathers = null;
 
         protected Boolean doInBackground(Boolean... geto) {
-            if (!mPhoneConnectionUtil.isNetworkAvailable()) {
+            if (mContext == null)
+                return false;
+            if (mPhoneConnectionUtil == null)
+                mPhoneConnectionUtil = new PhoneConnectionUtil(mContext);
+            if (mPhoneConnectionUtil != null && !mPhoneConnectionUtil.isNetworkAvailable()) {
                 try {
                     cacheWeathers = (ArrayList<WeatherInfo>) SerializableManager.readSerializedObject(mContext, "Weathers");
                 } catch (Exception ex) {
@@ -314,6 +371,8 @@ public class Weather extends DomoticzRecyclerFragment implements DomoticzFragmen
         }
 
         protected void onPostExecute(Boolean result) {
+            if (mContext == null)
+                return;
             if (cacheWeathers != null)
                 createListView(cacheWeathers);
 

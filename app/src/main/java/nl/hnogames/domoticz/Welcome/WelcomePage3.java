@@ -25,12 +25,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.AlertDialog;
 import android.text.InputType;
-import android.text.method.HideReturnsTransformationMethod;
-import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -42,17 +37,20 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
-import android.widget.Switch;
 
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.fastaccess.permission.base.PermissionFragmentHelper;
 import com.fastaccess.permission.base.callback.OnPermissionCallback;
-import com.marvinlabs.widget.floatinglabel.edittext.FloatingLabelEditText;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.AppCompatEditText;
+import androidx.fragment.app.Fragment;
 import nl.hnogames.domoticz.R;
 import nl.hnogames.domoticz.UI.MultiSelectionSpinner;
 import nl.hnogames.domoticz.Utils.PermissionsUtil;
@@ -71,32 +69,27 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
     private SharedPrefUtil mSharedPrefs;
     private ServerUtil mServerUtil;
 
-    private FloatingLabelEditText remote_server_input, remote_port_input,
-            remote_username_input, remote_password_input,
-            remote_directory_input, local_server_input, local_password_input,
-            local_username_input, local_port_input, local_directory_input;
+    private AppCompatEditText remote_server_input, remote_port_input,
+        remote_username_input, remote_password_input,
+        remote_directory_input, local_server_input, local_password_input,
+        local_username_input, local_port_input, local_directory_input;
 
-    private Spinner remote_protocol_spinner, local_protocol_spinner, startScreen_spinner;
-    private Switch localServer_switch;
-    private int remoteProtocolSelectedPosition, localProtocolSelectedPosition, startScreenSelectedPosition;
+    private Spinner remote_protocol_spinner, local_protocol_spinner;
+    private SwitchMaterial localServer_switch;
+    private int remoteProtocolSelectedPosition, localProtocolSelectedPosition;
     private View v;
     private boolean hasBeenVisibleToUser = false;
     private MultiSelectionSpinner local_wifi_spinner;
     private int callingInstance;
     private PhoneConnectionUtil mPhoneConnectionUtil;
-    private Switch advancedSettings_switch;
-    private CheckBox cbShowPassword, cbShowPasswordLocal;
-    private Button btnManualSSID;
 
     private PermissionFragmentHelper permissionFragmentHelper;
 
     public static WelcomePage3 newInstance(int instance) {
         WelcomePage3 f = new WelcomePage3();
-
         Bundle bdl = new Bundle(1);
         bdl.putInt(INSTANCE, instance);
         f.setArguments(bdl);
-
         return f;
     }
 
@@ -134,65 +127,58 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
     }
 
     private void getLayoutReferences() {
+        remote_server_input = v.findViewById(R.id.remote_server_input);
+        remote_port_input = v.findViewById(R.id.remote_port_input);
+        remote_username_input = v.findViewById(R.id.remote_username_input);
+        remote_password_input = v.findViewById(R.id.remote_password_input);
+        remote_directory_input = v.findViewById(R.id.remote_directory_input);
+        remote_protocol_spinner = v.findViewById(R.id.remote_protocol_spinner);
+        local_server_input = v.findViewById(R.id.local_server_input);
+        local_port_input = v.findViewById(R.id.local_port_input);
+        local_username_input = v.findViewById(R.id.local_username_input);
+        local_password_input = v.findViewById(R.id.local_password_input);
+        local_directory_input = v.findViewById(R.id.local_directory_input);
+        local_protocol_spinner = v.findViewById(R.id.local_protocol_spinner);
+        local_wifi_spinner = v.findViewById(R.id.local_wifi);
+        CheckBox cbShowPassword = v.findViewById(R.id.showpassword);
+        CheckBox cbShowPasswordLocal = v.findViewById(R.id.showpasswordlocal);
+        Button btnManualSSID = v.findViewById(R.id.set_ssid);
 
-        remote_server_input = (FloatingLabelEditText) v.findViewById(R.id.remote_server_input);
-        remote_port_input = (FloatingLabelEditText) v.findViewById(R.id.remote_port_input);
-        remote_username_input = (FloatingLabelEditText) v.findViewById(R.id.remote_username_input);
-        remote_password_input = (FloatingLabelEditText) v.findViewById(R.id.remote_password_input);
-        remote_directory_input = (FloatingLabelEditText) v.findViewById(R.id.remote_directory_input);
-        remote_protocol_spinner = (Spinner) v.findViewById(R.id.remote_protocol_spinner);
-        local_server_input = (FloatingLabelEditText) v.findViewById(R.id.local_server_input);
-        local_port_input = (FloatingLabelEditText) v.findViewById(R.id.local_port_input);
-        local_username_input = (FloatingLabelEditText) v.findViewById(R.id.local_username_input);
-        local_password_input = (FloatingLabelEditText) v.findViewById(R.id.local_password_input);
-        local_directory_input = (FloatingLabelEditText) v.findViewById(R.id.local_directory_input);
-        local_protocol_spinner = (Spinner) v.findViewById(R.id.local_protocol_spinner);
-        local_wifi_spinner = (MultiSelectionSpinner) v.findViewById(R.id.local_wifi);
-        cbShowPassword = (CheckBox) v.findViewById(R.id.showpassword);
-        cbShowPasswordLocal = (CheckBox) v.findViewById(R.id.showpasswordlocal);
-
-        startScreen_spinner = (Spinner) v.findViewById(R.id.startScreen_spinner);
-        btnManualSSID = (Button) v.findViewById(R.id.set_ssid);
         btnManualSSID.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 new MaterialDialog.Builder(getContext())
-                        .title(R.string.welcome_ssid_button_prompt)
-                        .content(R.string.welcome_msg_no_ssid_found)
-                        .inputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD)
-                        .input(null, null, new MaterialDialog.InputCallback() {
-                            @Override
-                            public void onInput(MaterialDialog dialog, CharSequence input) {
-                                Set<String> ssidFromPrefs = mServerUtil.getActiveServer().getLocalServerSsid();
-                                final ArrayList<String> ssidListFromPrefs = new ArrayList<>();
-                                if (ssidFromPrefs != null) {
-                                    if (ssidFromPrefs.size() > 0) {
-                                        for (String wifi : ssidFromPrefs) {
-                                            ssidListFromPrefs.add(wifi);
-                                        }
+                    .title(R.string.welcome_ssid_button_prompt)
+                    .content(R.string.welcome_msg_no_ssid_found)
+                    .inputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD)
+                    .input(null, null, new MaterialDialog.InputCallback() {
+                        @Override
+                        public void onInput(@NonNull MaterialDialog dialog, CharSequence input) {
+                            Set<String> ssidFromPrefs = mServerUtil.getActiveServer().getLocalServerSsid();
+                            final ArrayList<String> ssidListFromPrefs = new ArrayList<>();
+                            if (ssidFromPrefs != null) {
+                                if (ssidFromPrefs.size() > 0) {
+                                    for (String wifi : ssidFromPrefs) {
+                                        ssidListFromPrefs.add(wifi);
                                     }
                                 }
-                                ssidListFromPrefs.add(String.valueOf(input));
-                                mServerUtil.getActiveServer().setLocalServerSsid(ssidListFromPrefs);
-
-                                setSsid_spinner();
                             }
-                        }).show();
+                            ssidListFromPrefs.add(String.valueOf(input));
+                            mServerUtil.getActiveServer().setLocalServerSsid(ssidListFromPrefs);
+
+                            setSsid_spinner();
+                        }
+                    }).show();
             }
         });
 
         if (callingInstance == SETTINGS) {
-            // Hide these settings if being called by settings (instead of welcome wizard)
-            startScreen_spinner.setVisibility(View.GONE);
-            v.findViewById(R.id.startScreen_title).setVisibility(View.GONE);
             v.findViewById(R.id.server_settings_title).setVisibility(View.GONE);
         }
 
-        final LinearLayout localServerSettingsLayout = (LinearLayout)
-                v.findViewById(R.id.local_server_settings);
-        localServer_switch = (Switch) v.findViewById(R.id.localServer_switch);
+        final LinearLayout localServerSettingsLayout = v.findViewById(R.id.local_server_settings);
+        localServer_switch = v.findViewById(R.id.localServer_switch);
         localServer_switch.setChecked(mSharedPrefs.isAdvancedSettingsEnabled());
-
         localServer_switch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
@@ -200,64 +186,47 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
                 else localServerSettingsLayout.setVisibility(View.GONE);
             }
         });
-
-        final LinearLayout advancedSettings_layout = (LinearLayout)
-                v.findViewById(R.id.advancedSettings_layout);
-
-        advancedSettings_switch = (Switch) v.findViewById(R.id.advancedSettings_switch);
-        advancedSettings_switch.setChecked(mSharedPrefs.isAdvancedSettingsEnabled());
-
-        if (mSharedPrefs.isAdvancedSettingsEnabled())
-            advancedSettings_layout.setVisibility(View.VISIBLE);
-
-        advancedSettings_switch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                mSharedPrefs.setAdvancedSettingsEnabled(isChecked);
-
-                if (isChecked) advancedSettings_layout.setVisibility(View.VISIBLE);
-                else advancedSettings_layout.setVisibility(View.GONE);
-            }
-        });
-
+        localServerSettingsLayout.setVisibility(mServerUtil.getActiveServer().getIsLocalServerAddressDifferent() ? View.VISIBLE : View.GONE);
         cbShowPassword.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!isChecked) {
-                    remote_password_input.getInputWidget().setTransformationMethod(PasswordTransformationMethod.getInstance());
+                    remote_password_input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                    remote_password_input.setSelection(remote_password_input.getText().length());
                 } else {
-                    remote_password_input.getInputWidget().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                    remote_password_input.setInputType(InputType.TYPE_CLASS_TEXT);
+                    remote_password_input.setSelection(remote_password_input.getText().length());
                 }
             }
         });
-
         cbShowPasswordLocal.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!isChecked) {
-                    local_password_input.getInputWidget().setTransformationMethod(PasswordTransformationMethod.getInstance());
+                    local_password_input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                    local_password_input.setSelection(local_password_input.getText().length());
                 } else {
-                    local_password_input.getInputWidget().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                    local_password_input.setInputType(InputType.TYPE_CLASS_TEXT);
+                    local_password_input.setSelection(local_password_input.getText().length());
                 }
             }
         });
     }
 
     private void setPreferenceValues() {
-        remote_username_input.setInputWidgetText(mServerUtil.getActiveServer().getRemoteServerUsername());
-        remote_password_input.setInputWidgetText(mServerUtil.getActiveServer().getRemoteServerPassword());
-        remote_server_input.setInputWidgetText(mServerUtil.getActiveServer().getRemoteServerUrl());
-        remote_port_input.setInputWidgetText(mServerUtil.getActiveServer().getRemoteServerPort());
-        remote_directory_input.setInputWidgetText(mServerUtil.getActiveServer().getRemoteServerDirectory());
+        remote_username_input.setText(mServerUtil.getActiveServer().getRemoteServerUsername());
+        remote_password_input.setText(mServerUtil.getActiveServer().getRemoteServerPassword());
+        remote_server_input.setText(mServerUtil.getActiveServer().getRemoteServerUrl());
+        remote_port_input.setText(mServerUtil.getActiveServer().getRemoteServerPort());
+        remote_directory_input.setText(mServerUtil.getActiveServer().getRemoteServerDirectory());
         localServer_switch.setChecked(mServerUtil.getActiveServer().getIsLocalServerAddressDifferent());
-        local_username_input.setInputWidgetText(mServerUtil.getActiveServer().getLocalServerUsername());
-        local_password_input.setInputWidgetText(mServerUtil.getActiveServer().getLocalServerPassword());
-        local_server_input.setInputWidgetText(mServerUtil.getActiveServer().getLocalServerUrl());
-        local_port_input.setInputWidgetText(mServerUtil.getActiveServer().getLocalServerPort());
-        local_directory_input.setInputWidgetText(mServerUtil.getActiveServer().getLocalServerDirectory());
+        local_username_input.setText(mServerUtil.getActiveServer().getLocalServerUsername());
+        local_password_input.setText(mServerUtil.getActiveServer().getLocalServerPassword());
+        local_server_input.setText(mServerUtil.getActiveServer().getLocalServerUrl());
+        local_port_input.setText(mServerUtil.getActiveServer().getLocalServerPort());
+        local_directory_input.setText(mServerUtil.getActiveServer().getLocalServerDirectory());
 
         setProtocol_spinner();
-        setStartScreen_spinner();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!PermissionsUtil.canAccessLocation(getActivity())) {
@@ -273,13 +242,17 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
         final ArrayList<String> ssidListFromPrefs = new ArrayList<>();
         //noinspection SpellCheckingInspection
         final ArrayList<String> ssids = new ArrayList<>();
-
         if (ssidFromPrefs != null) {
             if (ssidFromPrefs.size() > 0) {
                 for (String wifi : ssidFromPrefs) {
                     ssids.add(wifi);
                     ssidListFromPrefs.add(wifi);
                 }
+
+                //quickly set the values
+                local_wifi_spinner.setTitle(R.string.welcome_ssid_spinner_prompt);
+                local_wifi_spinner.setItems(ssids);
+                local_wifi_spinner.setSelection(ssidListFromPrefs);
             }
         }
 
@@ -287,14 +260,17 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
             @Override
             public void ReceiveSSIDs(CharSequence[] ssidFound) {
                 if (ssidFound == null || ssidFound.length < 1) {
-                    // No wifi ssid nearby found!
-                    local_wifi_spinner.setEnabled(false);                       // Disable spinner
-                    ssids.add(getString(R.string.welcome_msg_no_ssid_found));
-                    // Set selection to the 'no ssids found' message to inform user
-                    local_wifi_spinner.setItems(ssids);
-                    local_wifi_spinner.setSelection(0);
+                    if (ssidListFromPrefs.size() <= 0) {
+                        // No wifi ssid nearby found!
+                        local_wifi_spinner.setEnabled(false);                       // Disable spinner
+                        ssids.add(getString(R.string.welcome_msg_no_ssid_found));
+                        // Set selection to the 'no ssids found' message to inform user
+                        local_wifi_spinner.setItems(ssids);
+                        local_wifi_spinner.setSelection(0);
+                    }
                 } else {
                     for (CharSequence ssid : ssidFound) {
+                        //noinspection SuspiciousMethodCalls
                         if (!UsefulBits.isEmpty(ssid) && !ssids.contains(ssid))
                             ssids.add(ssid.toString());  // Prevent double SSID's
                     }
@@ -312,7 +288,7 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
     private void setProtocol_spinner() {
         String[] protocols = getResources().getStringArray(R.array.remote_server_protocols);
         ArrayAdapter<String> protocolAdapter
-                = new ArrayAdapter<>(getActivity(), R.layout.spinner_list_item, protocols);
+            = new ArrayAdapter<>(getActivity(), R.layout.spinner_list_item, protocols);
         remote_protocol_spinner.setAdapter(protocolAdapter);
         remote_protocol_spinner.setSelection(getPrefsDomoticzRemoteSecureIndex());
         remote_protocol_spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -342,58 +318,36 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
         });
     }
 
-    private void setStartScreen_spinner() {
-        String[] startScreens = getResources().getStringArray(R.array.drawer_actions);
-        ArrayAdapter<String> startScreenAdapter
-                = new ArrayAdapter<>(getActivity(), R.layout.spinner_list_item, startScreens);
-        startScreen_spinner.setAdapter(startScreenAdapter);
-        startScreen_spinner.setSelection(mSharedPrefs.getStartupScreenIndex());
-        startScreen_spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView,
-                                       View view, int position, long id) {
-                startScreenSelectedPosition = position;
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-            }
-        });
-    }
-
     private void writePreferenceValues() {
         mServerUtil.getActiveServer().setRemoteServerUsername(
-                remote_username_input.getInputWidgetText().toString());
+            remote_username_input.getText().toString().trim());
         mServerUtil.getActiveServer().setRemoteServerPassword(
-                remote_password_input.getInputWidgetText().toString());
+            remote_password_input.getText().toString().trim());
         mServerUtil.getActiveServer().setRemoteServerUrl(
-                remote_server_input.getInputWidgetText().toString());
+            remote_server_input.getText().toString().trim());
         mServerUtil.getActiveServer().setRemoteServerPort(
-                remote_port_input.getInputWidgetText().toString());
+            remote_port_input.getText().toString().trim());
         mServerUtil.getActiveServer().setRemoteServerDirectory(
-                remote_directory_input.getInputWidgetText().toString());
+            remote_directory_input.getText().toString().trim());
         mServerUtil.getActiveServer().setRemoteServerSecure(
-                getSpinnerDomoticzRemoteSecureBoolean());
-        if (callingInstance == WELCOME_WIZARD)
-            mSharedPrefs.setStartupScreenIndex(startScreenSelectedPosition);
-
-        Switch useSameAddress = (Switch) v.findViewById(R.id.localServer_switch);
+            getSpinnerDomoticzRemoteSecureBoolean());
+        SwitchMaterial useSameAddress = v.findViewById(R.id.localServer_switch);
         if (!useSameAddress.isChecked()) {
             mServerUtil.getActiveServer().setLocalSameAddressAsRemote();
             mServerUtil.getActiveServer().setIsLocalServerAddressDifferent(false);
         } else {
             mServerUtil.getActiveServer().setLocalServerUsername(
-                    local_username_input.getInputWidgetText().toString());
+                local_username_input.getText().toString().trim());
             mServerUtil.getActiveServer().setLocalServerPassword(
-                    local_password_input.getInputWidgetText().toString());
+                local_password_input.getText().toString().trim());
             mServerUtil.getActiveServer().setLocalServerUrl(
-                    local_server_input.getInputWidgetText().toString());
+                local_server_input.getText().toString().trim());
             mServerUtil.getActiveServer().setLocalServerPort(
-                    local_port_input.getInputWidgetText().toString());
+                local_port_input.getText().toString().trim());
             mServerUtil.getActiveServer().setLocalServerDirectory(
-                    local_directory_input.getInputWidgetText().toString());
+                local_directory_input.getText().toString().trim());
             mServerUtil.getActiveServer().setLocalServerSecure(
-                    getSpinnerDomoticzLocalSecureBoolean());
+                getSpinnerDomoticzLocalSecureBoolean());
             mServerUtil.getActiveServer().setIsLocalServerAddressDifferent(true);
         }
 
@@ -464,13 +418,13 @@ public class WelcomePage3 extends Fragment implements OnPermissionCallback {
         Log.i("onPermissionDeclined", "Permission(s) " + Arrays.toString(permissionName) + " Declined");
         String[] neededPermission = PermissionFragmentHelper.declinedPermissions(this, PermissionsUtil.INITIAL_LOCATION_PERMS);
         AlertDialog alert = PermissionsUtil.getAlertDialog(getActivity(), permissionFragmentHelper, getActivity().getString(R.string.permission_title),
-                getActivity().getString(R.string.permission_desc_location), neededPermission, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (mPhoneConnectionUtil != null)
-                            mPhoneConnectionUtil.stopReceiver();
-                    }
-                });
+            getActivity().getString(R.string.permission_desc_location), neededPermission, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (mPhoneConnectionUtil != null)
+                        mPhoneConnectionUtil.stopReceiver();
+                }
+            });
         if (!alert.isShowing()) {
             alert.show();
         }

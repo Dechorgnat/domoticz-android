@@ -21,10 +21,14 @@
 
 package nl.hnogames.domoticz.Service;
 
+import android.content.Context;
+import android.util.Log;
+
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.GcmTaskService;
 import com.google.android.gms.gcm.TaskParams;
 
+import nl.hnogames.domoticz.Utils.GeoUtils;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.Utils.UsefulBits;
 
@@ -48,15 +52,23 @@ public class TaskService extends GcmTaskService {
     @Override
     public int onRunTask(TaskParams taskParams) {
         String tag = taskParams.getTag();
-
         if (tag.equals(UsefulBits.TASK_TAG_PERIODIC) || tag.equals("TEST")) {
             final boolean forceUpdate = true;                                     // Force update
             //noinspection ConstantConditions
-            UsefulBits.getServerConfigForActiveServer(this, forceUpdate, null, null);
+            UsefulBits.getServerConfigForActiveServer(this, null, null);
             //noinspection ConstantConditions
             UsefulBits.checkDownloadedLanguage(this, null, forceUpdate, true);
+            resetGeofenceService(this);
         }
 
         return GcmNetworkManager.RESULT_SUCCESS;
+    }
+
+    private void resetGeofenceService(Context context) {
+        if (new SharedPrefUtil(context).isGeofenceEnabled()) {
+            GeoUtils.geofencesAlreadyRegistered = false;
+            new GeoUtils(context, null).AddGeofences();
+            Log.i("TASK", "Reset Geofences received, starting geofences");
+        }
     }
 }

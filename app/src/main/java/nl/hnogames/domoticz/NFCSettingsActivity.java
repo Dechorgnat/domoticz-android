@@ -34,11 +34,6 @@ import android.nfc.tech.NfcB;
 import android.nfc.tech.NfcF;
 import android.nfc.tech.NfcV;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
 import android.view.MenuItem;
@@ -48,37 +43,42 @@ import android.widget.ListView;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.google.android.material.snackbar.Snackbar;
 import com.nhaarman.listviewanimations.appearance.simple.SwingBottomInAnimationAdapter;
 
 import java.util.ArrayList;
 
+import androidx.annotation.NonNull;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.core.content.ContextCompat;
 import hugo.weaving.DebugLog;
 import nl.hnogames.domoticz.Adapters.NFCAdapter;
 import nl.hnogames.domoticz.Containers.NFCInfo;
 import nl.hnogames.domoticz.Interfaces.NFCClickListener;
 import nl.hnogames.domoticz.UI.SwitchDialog;
+import nl.hnogames.domoticz.Utils.DeviceUtils;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.Utils.UsefulBits;
+import nl.hnogames.domoticz.app.AppCompatAssistActivity;
 import nl.hnogames.domoticz.app.AppController;
 import nl.hnogames.domoticzapi.Containers.DevicesInfo;
 import nl.hnogames.domoticzapi.Domoticz;
 import nl.hnogames.domoticzapi.DomoticzValues;
 import nl.hnogames.domoticzapi.Interfaces.DevicesReceiver;
 
-public class NFCSettingsActivity extends AppCompatActivity implements NFCClickListener {
-
+public class NFCSettingsActivity extends AppCompatAssistActivity implements NFCClickListener {
     // list of NFC technologies detected:
     private final String[][] techList = new String[][]{
-            new String[]{
-                    NfcA.class.getName(),
-                    NfcB.class.getName(),
-                    NfcF.class.getName(),
-                    NfcV.class.getName(),
-                    IsoDep.class.getName(),
-                    MifareClassic.class.getName(),
-                    MifareUltralight.class.getName(),
-                    Ndef.class.getName()
-            }
+        new String[]{
+            NfcA.class.getName(),
+            NfcB.class.getName(),
+            NfcF.class.getName(),
+            NfcV.class.getName(),
+            IsoDep.class.getName(),
+            MifareClassic.class.getName(),
+            MifareUltralight.class.getName(),
+            Ndef.class.getName()
+        }
     };
 
     boolean result = false;
@@ -102,7 +102,7 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nfc_settings);
-        coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorLayout);
+        coordinatorLayout = findViewById(R.id.coordinatorLayout);
         if (mSharedPrefs.darkThemeEnabled()) {
             coordinatorLayout.setBackgroundColor(ContextCompat.getColor(this, R.color.background_dark));
         }
@@ -121,7 +121,6 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
         domoticz = new Domoticz(this, AppController.getInstance().getRequestQueue());
         nfcList = mSharedPrefs.getNFCList();
         adapter = new NFCAdapter(this, nfcList, this);
-
         createListView();
     }
 
@@ -141,7 +140,6 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
             // enabling foreground dispatch for getting intent from NFC event:
             if (mNfcAdapter == null) {
                 mNfcAdapter = NfcAdapter.getDefaultAdapter(this);
-
                 if (mNfcAdapter != null) {
                     UsefulBits.showSnackbar(this, coordinatorLayout, R.string.nfc_register, Snackbar.LENGTH_SHORT);
                 } else {
@@ -166,7 +164,7 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
 
     @Override
     protected void onNewIntent(Intent intent) {
-        if (intent.getAction().equals(NfcAdapter.ACTION_TAG_DISCOVERED) && !busyWithTag) {
+        if (intent != null && intent.getAction() != null && intent.getAction().equals(NfcAdapter.ACTION_TAG_DISCOVERED) && !busyWithTag) {
             boolean newTagFound = true;
             busyWithTag = true;
             final String tagID = UsefulBits.ByteArrayToHexString(intent.getByteArrayExtra(NfcAdapter.EXTRA_ID));
@@ -180,22 +178,22 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
             if (newTagFound) {
                 UsefulBits.showSnackbar(this, coordinatorLayout, getString(R.string.nfc_tag_found) + ": " + tagID, Snackbar.LENGTH_SHORT);
                 new MaterialDialog.Builder(this)
-                        .title(R.string.nfc_tag_found)
-                        .content(R.string.nfc_tag_name)
-                        .inputType(InputType.TYPE_CLASS_TEXT)
-                        .input(R.string.category_nfc, 0, new MaterialDialog.InputCallback() {
-                            @Override
-                            public void onInput(@NonNull MaterialDialog dialog, CharSequence input) {
-                                if (!UsefulBits.isEmpty(String.valueOf(input))) {
-                                    UsefulBits.showSnackbar(NFCSettingsActivity.this, coordinatorLayout, getString(R.string.nfc_saved) + ": " + input, Snackbar.LENGTH_SHORT);
-                                    NFCInfo newNFC = new NFCInfo();
-                                    newNFC.setId(tagID);
-                                    newNFC.setName(String.valueOf(input));
-                                    updateNFC(newNFC);
-                                }
-                                busyWithTag = false;
+                    .title(R.string.nfc_tag_found)
+                    .content(R.string.nfc_tag_name)
+                    .inputType(InputType.TYPE_CLASS_TEXT)
+                    .input(R.string.category_nfc, 0, new MaterialDialog.InputCallback() {
+                        @Override
+                        public void onInput(@NonNull MaterialDialog dialog, CharSequence input) {
+                            if (!UsefulBits.isEmpty(String.valueOf(input))) {
+                                UsefulBits.showSnackbar(NFCSettingsActivity.this, coordinatorLayout, getString(R.string.nfc_saved) + ": " + input, Snackbar.LENGTH_SHORT);
+                                NFCInfo newNFC = new NFCInfo();
+                                newNFC.setId(tagID);
+                                newNFC.setName(String.valueOf(input));
+                                updateNFC(newNFC);
                             }
-                        }).show();
+                            busyWithTag = false;
+                        }
+                    }).show();
             } else {
                 UsefulBits.showSnackbar(NFCSettingsActivity.this, coordinatorLayout, R.string.nfc_exists, Snackbar.LENGTH_SHORT);
                 busyWithTag = false;
@@ -204,7 +202,7 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
     }
 
     private void createListView() {
-        ListView listView = (ListView) findViewById(R.id.listView);
+        ListView listView = findViewById(R.id.listView);
         if (mSharedPrefs.darkThemeEnabled()) {
             listView.setBackgroundColor(ContextCompat.getColor(this, R.color.background_dark));
         }
@@ -229,20 +227,20 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
     private void showEditDialog(final NFCInfo mNFCInfo) {
         busyWithTag = true;
         new MaterialDialog.Builder(this)
-                .title(R.string.nfc_tag_edit)
-                .content(R.string.nfc_tag_name)
-                .inputType(InputType.TYPE_CLASS_TEXT)
-                .negativeText(R.string.cancel)
-                .input(this.getString(R.string.category_nfc), mNFCInfo.getName(), new MaterialDialog.InputCallback() {
-                    @Override
-                    public void onInput(@NonNull MaterialDialog dialog, CharSequence input) {
-                        if (!UsefulBits.isEmpty(String.valueOf(input))) {
-                            mNFCInfo.setName(String.valueOf(input));
-                            updateNFC(mNFCInfo);
-                        }
-                        busyWithTag = false;
+            .title(R.string.nfc_tag_edit)
+            .content(R.string.nfc_tag_name)
+            .inputType(InputType.TYPE_CLASS_TEXT)
+            .negativeText(R.string.cancel)
+            .input(this.getString(R.string.category_nfc), mNFCInfo.getName(), new MaterialDialog.InputCallback() {
+                @Override
+                public void onInput(@NonNull MaterialDialog dialog, CharSequence input) {
+                    if (!UsefulBits.isEmpty(String.valueOf(input))) {
+                        mNFCInfo.setName(String.valueOf(input));
+                        updateNFC(mNFCInfo);
                     }
-                }).show();
+                    busyWithTag = false;
+                }
+            }).show();
     }
 
     private void getSwitchesAndShowSwitchesDialog(final NFCInfo nfcInfo) {
@@ -262,36 +260,48 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
             @DebugLog
             public void onError(Exception error) {
                 UsefulBits.showSnackbarWithAction(NFCSettingsActivity.this, coordinatorLayout, NFCSettingsActivity.this.getString(R.string.unable_to_get_switches), Snackbar.LENGTH_SHORT,
-                        null, new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                getSwitchesAndShowSwitchesDialog(nfcInfo);
-                            }
-                        }, NFCSettingsActivity.this.getString(R.string.retry));
+                    null, new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            getSwitchesAndShowSwitchesDialog(nfcInfo);
+                        }
+                    }, NFCSettingsActivity.this.getString(R.string.retry));
             }
-        }, 0, "light");
+        }, 0, "all");
     }
 
     private void showSwitchesDialog(
-            final NFCInfo nfcInfo,
-            final ArrayList<DevicesInfo> switches) {
+        final NFCInfo nfcInfo,
+        ArrayList<DevicesInfo> switches) {
+
+        final ArrayList<DevicesInfo> supportedSwitches = new ArrayList<>();
+        for (DevicesInfo d : switches) {
+            if (DeviceUtils.isAutomatedToggableDevice(d))
+                supportedSwitches.add(d);
+        }
 
         SwitchDialog infoDialog = new SwitchDialog(
-                NFCSettingsActivity.this, switches,
-                R.layout.dialog_switch_logs,
-                domoticz);
+            NFCSettingsActivity.this, supportedSwitches,
+            R.layout.dialog_switch_logs,
+            domoticz);
+
         infoDialog.onDismissListener(new SwitchDialog.DismissListener() {
             @Override
-            public void onDismiss(int selectedSwitchIDX, String selectedSwitchPassword, String selectedSwitchName) {
+            public void onDismiss(int selectedSwitchIDX, String selectedSwitchPassword, String selectedSwitchName, boolean isSceneOrGroup) {
                 nfcInfo.setSwitchIdx(selectedSwitchIDX);
                 nfcInfo.setSwitchPassword(selectedSwitchPassword);
                 nfcInfo.setSwitchName(selectedSwitchName);
+                nfcInfo.setSceneOrGroup(isSceneOrGroup);
 
-                for (DevicesInfo s : switches) {
-                    if (s.getIdx() == selectedSwitchIDX && s.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.SELECTOR)
-                        showSelectorDialog(nfcInfo, s);
-                    else
-                        updateNFC(nfcInfo);
+                if (!isSceneOrGroup) {
+                    for (DevicesInfo s : supportedSwitches) {
+                        if (s.getIdx() == selectedSwitchIDX && s.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.SELECTOR)
+                            showSelectorDialog(nfcInfo, s);
+                        else
+                            updateNFC(nfcInfo);
+                    }
+                } else {
+                    updateNFC(nfcInfo);
                 }
             }
         });
@@ -300,18 +310,18 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
     }
 
     private void showSelectorDialog(final NFCInfo nfcInfo, DevicesInfo selector) {
-        final String[] levelNames = selector.getLevelNames();
+        final ArrayList<String> levelNames = selector.getLevelNames();
         new MaterialDialog.Builder(this)
-                .title(R.string.selector_value)
-                .items((CharSequence[]) levelNames)
-                .itemsCallback(new MaterialDialog.ListCallback() {
-                    @Override
-                    public void onSelection(MaterialDialog dialog, View view, int which, CharSequence text) {
-                        nfcInfo.setValue(String.valueOf(text));
-                        updateNFC(nfcInfo);
-                    }
-                })
-                .show();
+            .title(R.string.selector_value)
+            .items(levelNames)
+            .itemsCallback(new MaterialDialog.ListCallback() {
+                @Override
+                public void onSelection(MaterialDialog dialog, View view, int which, CharSequence text) {
+                    nfcInfo.setValue(String.valueOf(text));
+                    updateNFC(nfcInfo);
+                }
+            })
+            .show();
     }
 
     public void updateNFC(NFCInfo nfcInfo) {
@@ -337,21 +347,21 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
 
     private boolean showNoDeviceAttachedDialog(final NFCInfo nfcInfo) {
         new MaterialDialog.Builder(this)
-                .title(R.string.noSwitchSelected_title)
-                .content(getString(R.string.noSwitchSelected_explanation_nfc)
-                        + UsefulBits.newLine()
-                        + UsefulBits.newLine()
-                        + getString(R.string.noSwitchSelected_connectOneNow))
-                .positiveText(R.string.yes)
-                .negativeText(R.string.no)
-                .onPositive(new MaterialDialog.SingleButtonCallback() {
-                    @Override
-                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
-                        getSwitchesAndShowSwitchesDialog(nfcInfo);
-                        result = true;
-                    }
-                })
-                .show();
+            .title(R.string.noSwitchSelected_title)
+            .content(getString(R.string.noSwitchSelected_explanation_nfc)
+                + UsefulBits.newLine()
+                + UsefulBits.newLine()
+                + getString(R.string.noSwitchSelected_connectOneNow))
+            .positiveText(R.string.yes)
+            .negativeText(R.string.no)
+            .onPositive(new MaterialDialog.SingleButtonCallback() {
+                @Override
+                public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                    getSwitchesAndShowSwitchesDialog(nfcInfo);
+                    result = true;
+                }
+            })
+            .show();
         return result;
     }
 
@@ -390,7 +400,7 @@ public class NFCSettingsActivity extends AppCompatActivity implements NFCClickLi
 
         // Show snackbar with undo option
         String text = String.format(getString(R.string.something_deleted),
-                getString(R.string.nfc));
+            getString(R.string.nfc));
 
         UsefulBits.showSnackbarWithAction(this, coordinatorLayout, text, Snackbar.LENGTH_SHORT, new Snackbar.Callback() {
             @Override

@@ -18,17 +18,21 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-
 package nl.hnogames.domoticz.Service;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.IntentService;
 import android.content.Intent;
 
-public class StopAlarmButtonListener extends BroadcastReceiver {
+import androidx.annotation.Nullable;
+
+public class StopAlarmButtonListener extends IntentService {
+    public StopAlarmButtonListener() {
+        super("Stop Alarm");
+    }
+
     @Override
-    public void onReceive(Context context, Intent intent) {
-        Intent stopIntent = new Intent(context, RingtonePlayingService.class);
-        context.stopService(stopIntent);
+    protected void onHandleIntent(@Nullable Intent intent) {
+        Intent stopIntent = new Intent(this, RingtonePlayingService.class);
+        this.stopService(stopIntent);
     }
 }

@@ -22,18 +22,27 @@
 package nl.hnogames.domoticz;
 
 import android.os.Bundle;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 
+import androidx.fragment.app.FragmentTransaction;
+import hugo.weaving.DebugLog;
 import nl.hnogames.domoticz.Fragments.Dashboard;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.Utils.UsefulBits;
+import nl.hnogames.domoticz.app.AppCompatAssistActivity;
+import nl.hnogames.domoticzapi.Containers.ConfigInfo;
 import nl.hnogames.domoticzapi.Utils.ServerUtil;
 
-public class PlanActivity extends AppCompatActivity {
+public class PlanActivity extends AppCompatAssistActivity {
 
     private ServerUtil mServerUtil;
+
+    @DebugLog
+    public ConfigInfo getConfig() {
+        return mServerUtil != null && mServerUtil.getActiveServer() != null ?
+            mServerUtil.getActiveServer().getConfigInfo(this) :
+            null;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +55,6 @@ public class PlanActivity extends AppCompatActivity {
             UsefulBits.setDisplayLanguage(this, mSharedPrefs.getDisplayLanguage());
 
         super.onCreate(savedInstanceState);
-
         Bundle bundle = getIntent().getExtras();
         if (bundle != null) {
             //noinspection SpellCheckingInspection
@@ -75,9 +83,7 @@ public class PlanActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-
             case android.R.id.home:
-                //NavUtils.navigateUpFromSameTask(this);
                 this.finish();
                 return true;
         }

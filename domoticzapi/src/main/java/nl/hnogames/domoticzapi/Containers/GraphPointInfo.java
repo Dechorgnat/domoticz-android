@@ -41,13 +41,12 @@ public class GraphPointInfo {
     private float tm = Float.NaN;
     boolean hasTemperatureRange = false;
 
-    private String eu;
-
     private String v;
     private String v2;
-
     private String r1;
     private String r2;
+    private String eg;//energie levering
+    private String eu;//energie usage
 
     private String vMin;
     private String vMax;
@@ -63,6 +62,11 @@ public class GraphPointInfo {
     private String co2_min;
     private String co2_max;
     private String co2;
+
+    private String lux;
+    private String lux_min;
+    private String lux_max;
+    private String lux_avg;
 
     public GraphPointInfo(JSONObject row) throws JSONException {
         this.jsonObject = row;
@@ -80,7 +84,6 @@ public class GraphPointInfo {
             se = (float) row.optDouble("se");
         if (row.has("d"))
             dateTime = row.getString("d");
-
         if (row.has("v"))
             v = row.getString("v");
         else if (row.has("v_avg")) {
@@ -90,12 +93,23 @@ public class GraphPointInfo {
             vMax = row.getString("v_max");
         }
 
+        if (row.has("lux"))
+            lux = row.getString("lux");
+        if (row.has("lux_min"))
+            lux_min = row.getString("lux_min");
+        if (row.has("lux_max"))
+            lux_max = row.getString("lux_max");
+        if (row.has("lux_avg"))
+            lux_avg = row.getString("lux_avg");
+
         if (row.has("v2"))
             v2 = row.getString("v2");
         if (row.has("r1"))
             r1 = row.getString("r1");
         if (row.has("r2"))
             r2 = row.getString("r2");
+        if (row.has("eg"))
+            eg = row.getString("eg");
         if (row.has("eu"))
             eu = row.getString("eu");
         if (row.has("c"))
@@ -137,6 +151,19 @@ public class GraphPointInfo {
                 '}';
     }
 
+    public String getLux() {
+        return lux;
+    }
+    public String getLuxMin() {
+        return lux_min;
+    }
+    public String getLuxMax() {
+        return lux_max;
+    }
+    public String getLuxAvg() {
+        return lux_avg;
+    }
+
     public String getValue() {
         return v;
     }
@@ -153,6 +180,9 @@ public class GraphPointInfo {
 
     public String getPowerUsage() {
         return eu;
+    }
+    public String getPowerDelivery() {
+        return eg;
     }
 
     public String getValueMin() {

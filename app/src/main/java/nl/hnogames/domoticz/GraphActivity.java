@@ -22,14 +22,14 @@
 package nl.hnogames.domoticz;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 
 import nl.hnogames.domoticz.Fragments.Graph;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.Utils.UsefulBits;
+import nl.hnogames.domoticz.app.AppCompatAssistActivity;
 
-public class GraphActivity extends AppCompatActivity {
+public class GraphActivity extends AppCompatAssistActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +60,7 @@ public class GraphActivity extends AppCompatActivity {
             if (getSupportActionBar() != null)
                 getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportFragmentManager().beginTransaction().replace(android.R.id.content,
-                    graph).commit();
+                graph).commit();
         } catch (Exception ex) {
             this.finish();
         }

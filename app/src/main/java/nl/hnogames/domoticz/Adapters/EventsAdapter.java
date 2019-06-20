@@ -22,22 +22,21 @@
 package nl.hnogames.domoticz.Adapters;
 
 import android.content.Context;
-import android.graphics.Color;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
 import android.widget.ImageView;
-import android.widget.Switch;
 import android.widget.TextView;
 
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.Collections;
 
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
 import nl.hnogames.domoticz.Interfaces.EventsClickListener;
 import nl.hnogames.domoticz.R;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
@@ -82,14 +81,15 @@ public class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.DataObject
     @Override
     public DataObjectHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.event_row_default, parent, false);
+            .inflate(R.layout.event_row_default, parent, false);
 
         if (mSharedPrefs.darkThemeEnabled()) {
-            ((android.support.v7.widget.CardView) view.findViewById(R.id.card_global_wrapper)).setCardBackgroundColor(Color.parseColor("#3F3F3F"));
+            if ((view.findViewById(R.id.card_global_wrapper)) != null)
+                view.findViewById(R.id.card_global_wrapper).setBackgroundColor(ContextCompat.getColor(context, R.color.card_background_dark));
             if ((view.findViewById(R.id.row_wrapper)) != null)
-                (view.findViewById(R.id.row_wrapper)).setBackground(ContextCompat.getDrawable(context, R.drawable.bordershadowdark));
+                (view.findViewById(R.id.row_wrapper)).setBackground(ContextCompat.getDrawable(context, R.color.card_background_dark));
             if ((view.findViewById(R.id.row_global_wrapper)) != null)
-                (view.findViewById(R.id.row_global_wrapper)).setBackgroundColor(ContextCompat.getColor(context, R.color.background_dark));
+                (view.findViewById(R.id.row_global_wrapper)).setBackgroundColor(ContextCompat.getColor(context, R.color.card_background_dark));
         }
 
         return new DataObjectHolder(view);
@@ -109,12 +109,7 @@ public class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.DataObject
                     public void onClick(View v) {
                         for (EventInfo e : data) {
                             if (e.getId() == v.getId()) {
-                                //reset switch to previous state (we can't handle toggles yet!)
-                                if (e.getStatusBoolean()) {
-                                    holder.buttonON.setChecked(true);
-                                } else {
-                                    holder.buttonON.setChecked(false);
-                                }
+                                listener.onEventClick(e.getId(), !e.getStatusBoolean());
                             }
                         }
                     }
@@ -126,6 +121,7 @@ public class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.DataObject
                     holder.buttonON.setChecked(false);
                 }
             }
+
             if (holder.name != null)
                 holder.name.setText(mEventInfo.getName());
 
@@ -136,7 +132,8 @@ public class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.DataObject
                     holder.message.setText("Status: " + context.getString(R.string.button_state_off));
                 }
             }
-            Picasso.with(context).load(R.drawable.cone).into(holder.iconRow);
+
+            Picasso.get().load(R.drawable.cone).into(holder.iconRow);
         }
     }
 
@@ -149,21 +146,19 @@ public class EventsAdapter extends RecyclerView.Adapter<EventsAdapter.DataObject
         void onItemClick(int position, View v);
     }
 
-
     public static class DataObjectHolder extends RecyclerView.ViewHolder
-            implements View.OnClickListener {
+        implements View.OnClickListener {
         TextView name;
         TextView message;
-        Switch buttonON;
+        SwitchMaterial buttonON;
         ImageView iconRow;
 
         public DataObjectHolder(View itemView) {
             super(itemView);
-            name = (TextView) itemView.findViewById(R.id.logs_name);
-            message = (TextView) itemView.findViewById(R.id.logs_message);
-            iconRow = (ImageView) itemView.findViewById(R.id.rowIcon);
-            buttonON = (Switch) itemView.findViewById(R.id.switch_button);
-
+            name = itemView.findViewById(R.id.logs_name);
+            message = itemView.findViewById(R.id.logs_message);
+            iconRow = itemView.findViewById(R.id.rowIcon);
+            buttonON = itemView.findViewById(R.id.switch_button);
             itemView.setOnClickListener(this);
         }
 

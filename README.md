@@ -1,5 +1,32 @@
-# DomoticzForAndroid
-This is a Android client for Domoticz and is available for download in the Play Store.
+[![Crowdin](https://d322cqt584bo4o.cloudfront.net/domoticz-for-android/localized.svg)](https://crowdin.com/project/domoticz-for-android)
+
+
+
+# Domoticz for Android
+This is a Android app for Domoticz and is available for download in the Play Store.
+
+
+-----
+
+# Table of Contents
+- [Domoticz](#domoticz)
+- [Play Store](#google-play-store)
+- [Screenshots](#screenshots)
+
+Features:
+- [Geofencing](#geofencing)
+- [Widgets](#widgets)
+- [Android Wear](#android-wear)
+- [NFC & QR Codes](#nfc--qr-codes)
+- [Biometric](#biometric)
+- [Floorplan](#floorplan)
+- [Dark Theme](#dark-theme)
+
+Credits:
+- [Credits](#credits)
+- [License](#license)
+
+
 
 # Domoticz
 -----
@@ -13,22 +40,37 @@ http://hnogames.nl/domoticz.html
 -----
 You can download Domoticz from the Google Play Store. There is a premium and free version! Premium features are Geofencing, Android Wear and Widgets.  
 
-**Free:**  
-[![google-play-badge](https://cloud.githubusercontent.com/assets/14561640/22199304/96017fa6-e15a-11e6-99bd-6fd3412eac8e.png)](https://play.google.com/store/apps/details?id=nl.hnogames.domoticz)
 
-**Premium:**  
-[![google-play-badge](https://cloud.githubusercontent.com/assets/14561640/22199304/96017fa6-e15a-11e6-99bd-6fd3412eac8e.png)](https://play.google.com/store/apps/details?id=nl.hnogames.domoticz.premium)
+| **Free:**  | **Premium:**   |
+| ------------- | ------------- |
+| [![google-play-badge](https://cloud.githubusercontent.com/assets/14561640/22199304/96017fa6-e15a-11e6-99bd-6fd3412eac8e.png)](https://play.google.com/store/apps/details?id=nl.hnogames.domoticz)  | [![google-play-badge](https://cloud.githubusercontent.com/assets/14561640/22199304/96017fa6-e15a-11e6-99bd-6fd3412eac8e.png)](https://play.google.com/store/apps/details?id=nl.hnogames.domoticz.premium)  |
+
+
+
+# Screenshots
+-----
+|  |  |  |
+| ------------- | ------------- | ------------- |
+|  ![1](https://user-images.githubusercontent.com/14561640/51106118-28c0fb00-17eb-11e9-9930-8ed8537b37f3.png) | ![2](https://user-images.githubusercontent.com/14561640/51106119-28c0fb00-17eb-11e9-8e79-6db1c2303422.png)  | ![3](https://user-images.githubusercontent.com/14561640/51106120-28c0fb00-17eb-11e9-98e1-1beb7b0198ea.png) |  
+|  ![4](https://user-images.githubusercontent.com/14561640/51106121-28c0fb00-17eb-11e9-8025-7c52fc9281b0.png) | ![5](https://user-images.githubusercontent.com/14561640/51106124-29599180-17eb-11e9-8fc0-1b967569ab0d.png)  |
+
+
 
 # Geofencing
 -----
-Add (one or multiple) Geofences and connect a switch to it which will be triggered when entering the Geofence.
-![geofencing](https://cloud.githubusercontent.com/assets/14561640/11994853/4e504300-aa46-11e5-83b1-ae71b9d8f322.png)
+Add (one or multiple) Geofences and connect a switch to it which will be triggered when entering the Geofence. 
+
+|  |  |
+| ------------- | ------------- | 
+|  ![geo_1](https://user-images.githubusercontent.com/14561640/51105938-b223fd80-17ea-11e9-8026-fa7148ab35ef.png)  |  ![geo_2](https://user-images.githubusercontent.com/14561640/51105944-b6501b00-17ea-11e9-826b-29b7295c6758.png)  |
+
 
 
 # Widgets
 -----
 See more information and toggle switches right from your home screen!  
-![widgets](https://cloud.githubusercontent.com/assets/14561640/11994858/604c018e-aa46-11e5-9892-75bb8a4eb752.png)
+![widget](https://user-images.githubusercontent.com/14561640/51105992-d7b10700-17ea-11e9-9c6f-c361ca3aec7f.png)
+
 
 
 # Android Wear
@@ -38,37 +80,35 @@ All Android Wear devices are supported.
 ![wear](https://cloud.githubusercontent.com/assets/14561640/11994714/ae6705ba-aa43-11e5-8e0c-5586607cdc6d.png)
 
 
-# NFC
------
-Connect NFC tags to switches!  
-![nfc](https://cloud.githubusercontent.com/assets/14561640/13137854/eba8b976-d623-11e5-824d-33d3a8be5cd9.png)
 
-# QR Codes
+# NFC & QR Codes
 -----
-Toggle switches by scanning QR Codes!  
-![qr code](https://cloud.githubusercontent.com/assets/14561640/13635799/684ebf04-e5fe-11e5-9932-988ba91cf564.png)
+This app has the option to scan NFC or QR codes and connect them to a switch!  
+![nfc](https://user-images.githubusercontent.com/14561640/51105729-16928d00-17ea-11e9-9e85-97386717abdd.png)
+
+
+
+# Biometric
+-----
+Ask for biometric verification when opening the app for extra security  
+![biometric](https://user-images.githubusercontent.com/14561640/51254525-944cc900-19a1-11e9-8242-1ed991c100e1.png)
+
 
 
 # Floorplan
 -----
 Use your devices within your floorplans  
-![floorplan](https://cloud.githubusercontent.com/assets/14561640/11994856/5817e6ea-aa46-11e5-8c50-44ded81f7b7d.png)
+![floorplan](https://user-images.githubusercontent.com/14561640/51106016-e3043280-17ea-11e9-806a-0443e7b3ab95.png)
 
-
-# Screenshots
------
-Some screenshots
-
-![2](https://cloud.githubusercontent.com/assets/14561640/11994848/3e03224c-aa46-11e5-85c2-6833b6891baf.png)
-![1](https://cloud.githubusercontent.com/assets/14561640/11994849/3e27abd0-aa46-11e5-9d28-47185ffb53f6.png)
 
 
 # Dark Theme
 -----
 The app is light and dark themed..  
 
-![3](https://cloud.githubusercontent.com/assets/14561640/13396920/84d41d1c-def7-11e5-83fa-99e9af008719.png)
-
+|  |  |
+| ------------- | ------------- | 
+|  ![dark_theme_1](https://user-images.githubusercontent.com/14561640/51105649-e0eda400-17e9-11e9-80f6-f69e93022e73.png)  |   ![dark_theme_2](https://user-images.githubusercontent.com/14561640/51105651-e0eda400-17e9-11e9-84d9-be83fa89a09c.png)  |
 
 
 

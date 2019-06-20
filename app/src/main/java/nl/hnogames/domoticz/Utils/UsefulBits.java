@@ -32,8 +32,6 @@ import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.Snackbar;
 import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -45,20 +43,26 @@ import com.github.javiersantos.piracychecker.PiracyCheckerUtils;
 import com.github.javiersantos.piracychecker.enums.InstallerID;
 import com.github.javiersantos.piracychecker.enums.PiracyCheckerCallback;
 import com.github.javiersantos.piracychecker.enums.PiracyCheckerError;
+import com.github.javiersantos.piracychecker.enums.PirateApp;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.PeriodicTask;
 import com.google.android.gms.gcm.Task;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormatSymbols;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import hugo.weaving.DebugLog;
 import nl.hnogames.domoticz.BuildConfig;
 import nl.hnogames.domoticz.MainActivity;
@@ -83,19 +87,60 @@ public class UsefulBits {
     private static final String TAG = UsefulBits.class.getSimpleName();
 
     public static boolean isEmpty(String string) {
-        //noinspection SimplifiableIfStatement
         if (string != null)
-            return string.equalsIgnoreCase("")
-                    || string.isEmpty()
-                    || string.length() <= 0;
+            return string.equalsIgnoreCase("") || string.isEmpty();
         else return true;
     }
 
     public static boolean isEmpty(CharSequence charSequence) {
-        //noinspection SimplifiableIfStatement
         if (charSequence != null)
             return charSequence.length() <= 0;
         else return true;
+    }
+
+    public static String getMonth(int month) {
+        try {
+            return new DateFormatSymbols().getMonths()[month - 1];
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    public static String getWeekDay(int day) {
+        try {
+            return getWeekDayNames()[day];
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static String[] getWeekDayNames() {
+        String[] names = new DateFormatSymbols().getShortWeekdays();
+        List<String> daysName = new ArrayList<>(Arrays.asList(names));
+        daysName.remove(0);
+        daysName.add(daysName.remove(0));
+        names = new String[daysName.size()];
+        daysName.toArray(names);
+        return names;
+    }
+
+    public static char[] Reverse(char[] A) {
+        if (A == null)
+            return null;
+        int idx = 0;
+        for (int i = A.length - 1; i >= A.length / 2; i--) {
+            char temp = A[i];
+            A[i] = A[idx];
+            A[idx] = temp;
+            idx++;
+        }
+        return A;
+    }
+
+    public static String Join(List<String> msgs) {
+        return msgs == null || msgs.size() == 0 ?
+            "" : msgs.size() == 1 ? msgs.get(0) :
+            msgs.subList(0, msgs.size() - 1).toString().replaceAll("^.|.$", "") + " and " + msgs.get(msgs.size() - 1);
     }
 
     public static String newLine() {
@@ -155,7 +200,7 @@ public class UsefulBits {
             for (byte aHash : hash) {
                 if ((0xff & aHash) < 0x10) {
                     hexString.append("0"
-                            + Integer.toHexString((0xFF & aHash)));
+                        + Integer.toHexString((0xFF & aHash)));
                 } else {
                     hexString.append(Integer.toHexString(0xFF & aHash));
                 }
@@ -199,7 +244,13 @@ public class UsefulBits {
      */
     @DebugLog
     public static void setDisplayLanguage(Context context, String lang) {
-        Locale myLocale = new Locale(lang);
+        Locale myLocale;
+        if (lang.equals("zh_CN"))
+            myLocale = Locale.SIMPLIFIED_CHINESE;
+        else if (lang.equals("zh_TW"))
+            myLocale = Locale.TRADITIONAL_CHINESE;
+        else
+            myLocale = new Locale(lang);
         Resources res = context.getResources();
         DisplayMetrics dm = res.getDisplayMetrics();
         Configuration conf = res.getConfiguration();
@@ -287,9 +338,9 @@ public class UsefulBits {
                     showSimpleToast(context, "Downloaded language files did not match the preferred language", Toast.LENGTH_SHORT);
 
                 Log.d(TAG, "Downloaded language files did not match the preferred language:" + newLine()
-                        + "Current downloaded language: " + downloadedLanguage + newLine()
-                        + "Active language: " + activeLanguage + newLine()
-                        + "Downloading the correct language");
+                    + "Current downloaded language: " + downloadedLanguage + newLine()
+                    + "Active language: " + activeLanguage + newLine()
+                    + "Downloading the correct language");
                 mSharedPrefs.getLanguageStringsFromServer(activeLanguage.toLowerCase(), serverUtil);
             }
         }
@@ -362,14 +413,14 @@ public class UsefulBits {
 
             @SuppressWarnings("PointlessArithmeticExpression")
             PeriodicTask task = new PeriodicTask.Builder()
-                    .setService(TaskService.class)                      // Service to start
-                    .setPersisted(true)                                 // Will survive reboots
-                    .setTag(TASK_TAG_PERIODIC)                          // Schedule periodic
-                    .setPeriod(60 * 60 * 24 * 1)                        // Every day
-                    .setFlex(60 * 60 * 8)                               // Flex of 8 hours
-                    .setRequiredNetwork(Task.NETWORK_STATE_UNMETERED)   // Only un metered networks
-                    .setRequiresCharging(true)                          // Only when charging
-                    .build();
+                .setService(TaskService.class)                      // Service to start
+                .setPersisted(true)                                 // Will survive reboots
+                .setTag(TASK_TAG_PERIODIC)                          // Schedule periodic
+                .setPeriod(60 * 60 * 24 * 1)                        // Every day
+                .setFlex(60 * 60 * 8)                               // Flex of 8 hours
+                .setRequiredNetwork(Task.NETWORK_STATE_UNMETERED)   // Only un metered networks
+                .setRequiresCharging(true)                          // Only when charging
+                .build();
 
             mGcmNetworkManager.schedule(task);
             mSharedPrefUtil.setTaskIsScheduled(true);
@@ -384,20 +435,9 @@ public class UsefulBits {
      * @param forced  Force update the config
      */
     @DebugLog
-    public static void getServerConfigForActiveServer(final Context context, boolean forced, final ConfigReceiver receiver, final ConfigInfo currentConfig) {
+    public static void getServerConfigForActiveServer(final Context context, final ConfigReceiver receiver, final ConfigInfo currentConfig) {
         final ServerUtil mServerUtil = new ServerUtil(context);
         final Domoticz domoticz = new Domoticz(context, AppController.getInstance().getRequestQueue());
-        final long currentTime = Calendar.getInstance().getTimeInMillis();
-
-        if (currentConfig != null && !forced) {
-            final long dateOfConfig = currentConfig.getDateOfConfig();
-            int age = UsefulBits.differenceInDays(dateOfConfig, currentTime);
-            if (age < DAYS_TO_CHECK_FOR_SERVER_CONFIG) {
-                Log.i(TAG, "Skipping ConfigInfo fetch which is " + String.valueOf(age) + " days old");
-                receiver.onReceiveConfig(currentConfig);
-                return;
-            }
-        }
 
         // Get Domoticz server configuration
         domoticz.getConfig(new ConfigReceiver() {
@@ -405,51 +445,17 @@ public class UsefulBits {
             @DebugLog
             public void onReceiveConfig(final ConfigInfo configInfo) {
                 if (configInfo != null) {
-                    configInfo.setDateOfConfig(currentTime);
-                    domoticz.getUsers(new UsersReceiver() {
+                    domoticz.getUserAuthenticationRights(new AuthReceiver() {
                         @Override
                         @DebugLog
-                        public void onReceiveUsers(final ArrayList<UserInfo> mUserInfo) {
-                            if (mUserInfo != null) {
-                                domoticz.getUserAuthenticationRights(new AuthReceiver() {
-                                    @Override
-                                    @DebugLog
-                                    public void onReceiveAuthentication(AuthInfo auth) {
-                                        ArrayList<UserInfo> mDetailUserInfo = mUserInfo;
-                                        //also add current user
-                                        UserInfo currentUser = new UserInfo(domoticz.getUserCredentials(Domoticz.Authentication.USERNAME),
-                                                UsefulBits.getMd5String(domoticz.getUserCredentials(Domoticz.Authentication.PASSWORD)),
-                                                auth.getRights());
-
-                                        mDetailUserInfo.add(currentUser);
-                                        configInfo.setUsers(mDetailUserInfo);
-                                        mServerUtil.getActiveServer().setConfigInfo(context, configInfo);
-                                        mServerUtil.saveDomoticzServers(true);
-
-                                        if (receiver != null)
-                                            receiver.onReceiveConfig(configInfo);
-                                    }
-
-                                    @Override
-                                    @DebugLog
-                                    public void onError(Exception error) {
-                                    }
-                                });
-                            } else {
-                                mServerUtil.getActiveServer().setConfigInfo(context, configInfo);
-                                mServerUtil.saveDomoticzServers(true);
-                            }
+                        public void onReceiveAuthentication(AuthInfo auth) {
+                            GetServerUserInfo(domoticz, auth, mServerUtil, context, configInfo, currentConfig, receiver);
                         }
 
                         @Override
                         @DebugLog
                         public void onError(Exception error) {
-                            if (currentConfig != null) {
-                                configInfo.setUsers(currentConfig.getUsers());
-                            }
-
-                            if (receiver != null)
-                                receiver.onReceiveConfig(configInfo);
+                            GetServerUserInfo(domoticz, null, mServerUtil, context, configInfo, currentConfig, receiver);
                         }
                     });
                 }
@@ -460,11 +466,65 @@ public class UsefulBits {
             public void onError(Exception error) {
                 if (error != null && domoticz != null)
                     showSimpleToast(context, String.format(
-                            context.getString(R.string.error_couldNotCheckForConfig),
-                            domoticz.getErrorMessage(error)), Toast.LENGTH_SHORT);
-
+                        context.getString(R.string.error_couldNotCheckForConfig),
+                        domoticz.getErrorMessage(error)), Toast.LENGTH_SHORT);
                 if (receiver != null)
                     receiver.onError(error);
+            }
+        });
+    }
+
+    public static void GetServerUserInfo(final Domoticz domoticz, final AuthInfo auth, final ServerUtil mServerUtil, final Context context, final ConfigInfo configInfo, final ConfigInfo currentConfig, final ConfigReceiver receiver) {
+        if (domoticz == null)
+            return;
+
+        ArrayList<UserInfo> mDetailUserInfo = new ArrayList<>();
+        UserInfo currentUser = new UserInfo(domoticz.getUserCredentials(Domoticz.Authentication.USERNAME),
+            UsefulBits.getMd5String(domoticz.getUserCredentials(Domoticz.Authentication.PASSWORD)),
+            auth != null ? auth.getRights() : 0);
+        if (currentConfig != null && currentConfig.getUsers() != null) {
+            for (UserInfo user : currentConfig.getUsers()) {
+                if (!user.getUsername().equals(currentUser.getUsername()))
+                    mDetailUserInfo.add(user);
+            }
+        }
+        mDetailUserInfo.add(currentUser);
+        configInfo.setUsers(mDetailUserInfo);
+        mServerUtil.getActiveServer().setConfigInfo(context, configInfo);
+        mServerUtil.saveDomoticzServers(true);
+
+        domoticz.getUsers(new UsersReceiver() {
+            @Override
+            @DebugLog
+            public void onReceiveUsers(final ArrayList<UserInfo> mUserInfo) {
+                if (mUserInfo != null) {
+                    ArrayList<UserInfo> mDetailUserInfo = new ArrayList<>();
+                    //also add current user
+                    UserInfo currentUser = new UserInfo(domoticz.getUserCredentials(Domoticz.Authentication.USERNAME),
+                        UsefulBits.getMd5String(domoticz.getUserCredentials(Domoticz.Authentication.PASSWORD)),
+                        auth != null ? auth.getRights() : 0);
+                    for (UserInfo user : mUserInfo) {
+                        if (!user.getUsername().equals(currentUser.getUsername()))
+                            mDetailUserInfo.add(user);
+                    }
+                    mDetailUserInfo.add(currentUser);
+                    configInfo.setUsers(mDetailUserInfo);
+                    mServerUtil.getActiveServer().setConfigInfo(context, configInfo);
+                    mServerUtil.saveDomoticzServers(true);
+                } else {
+                    mServerUtil.getActiveServer().setConfigInfo(context, configInfo);
+                    mServerUtil.saveDomoticzServers(true);
+                }
+                if (receiver != null)
+                    receiver.onReceiveConfig(configInfo);
+            }
+
+            @Override
+            @DebugLog
+            public void onError(Exception error) {
+                //Toast.makeText(context, "Could not get user info", Toast.LENGTH_LONG).show();
+                if (receiver != null)
+                    receiver.onReceiveConfig(configInfo);
             }
         });
     }
@@ -482,7 +542,7 @@ public class UsefulBits {
                 // Unresolvable error
                 Log.e(TAG, "Google Play services is unavailable.");
                 showSimpleToast(activity,
-                        activity.getString(R.string.google_play_services_unavailable), Toast.LENGTH_SHORT);
+                    activity.getString(R.string.google_play_services_unavailable), Toast.LENGTH_SHORT);
                 return false;
             }
         }
@@ -524,27 +584,27 @@ public class UsefulBits {
                                               View.OnClickListener onclickListener, String actiontext) {
         try {
             if (context != null &&
-                    coordinatorLayout != null &&
-                    !UsefulBits.isEmpty(message)) {
+                coordinatorLayout != null &&
+                !UsefulBits.isEmpty(message)) {
                 if (onclickListener == null || UsefulBits.isEmpty(actiontext)) {
                     if (callback != null) {
                         Snackbar.make(coordinatorLayout, message, length)
-                                .setCallback(callback)
-                                .show();
+                            .setCallback(callback)
+                            .show();
                     } else {
                         Snackbar.make(coordinatorLayout, message, length)
-                                .show();
+                            .show();
                     }
                 } else {
                     if (callback != null) {
                         Snackbar.make(coordinatorLayout, message, length)
-                                .setAction(actiontext, onclickListener)
-                                .setCallback(callback)
-                                .show();
+                            .setAction(actiontext, onclickListener)
+                            .setCallback(callback)
+                            .show();
                     } else {
                         Snackbar.make(coordinatorLayout, message, length)
-                                .setAction(actiontext, onclickListener)
-                                .show();
+                            .setAction(actiontext, onclickListener)
+                            .show();
                     }
                 }
             }
@@ -563,8 +623,8 @@ public class UsefulBits {
             if (otherApp.activityInfo.applicationInfo.packageName.equals("com.android.vending")) {
                 ActivityInfo otherAppActivity = otherApp.activityInfo;
                 ComponentName componentName = new ComponentName(
-                        otherAppActivity.applicationInfo.packageName,
-                        otherAppActivity.name
+                    otherAppActivity.applicationInfo.packageName,
+                    otherAppActivity.name
                 );
                 rateIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                 rateIntent.setComponent(componentName);
@@ -595,25 +655,29 @@ public class UsefulBits {
                 mSharedPrefs.setAPKValidated(false);
         }
 
-        if (!BuildConfig.DEBUG) {
+        if (BuildConfig.PAID_OOTT) {
+            //TODO: Implement correct piracychecker for this app!!
+            mSharedPrefs.setAPKValidated(true);
+            return;
+        } else {
             // release build
             PiracyChecker oPiracyChecker = new PiracyChecker(context);
             oPiracyChecker
-                    .enableSigningCertificate(context.getString(R.string.APK_VALIDATE_PROD))
-                    .enableGooglePlayLicensing(context.getString(R.string.APK_LICENSE_PREMIUM))
-                    .enableInstallerId(InstallerID.GOOGLE_PLAY)
-                    .callback(new PiracyCheckerCallback() {
-                        @Override
-                        public void allow() {
-                            mSharedPrefs.setAPKValidated(true);
-                        }
+                .enableSigningCertificate(context.getString(R.string.APK_VALIDATE_PROD))
+                .enableGooglePlayLicensing(context.getString(R.string.APK_LICENSE_PREMIUM))
+                .enableInstallerId(InstallerID.GOOGLE_PLAY)
+                .callback(new PiracyCheckerCallback() {
+                    @Override
+                    public void allow() {
+                        mSharedPrefs.setAPKValidated(true);
+                    }
 
-                        @Override
-                        public void dontAllow(PiracyCheckerError piracyCheckerError) {
-                            mSharedPrefs.setAPKValidated(false);
-                        }
-                    })
-                    .start();
+                    @Override
+                    public void dontAllow(@NonNull PiracyCheckerError piracyCheckerError, @Nullable PirateApp pirateApp) {
+                        mSharedPrefs.setAPKValidated(false);
+                    }
+                })
+                .start();
         }
     }
 }

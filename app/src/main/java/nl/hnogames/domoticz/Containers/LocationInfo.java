@@ -26,6 +26,8 @@ import android.location.Address;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.maps.model.LatLng;
 
+import nl.hnogames.domoticz.Utils.UsefulBits;
+
 public class LocationInfo {
     private String name;
     private LatLng latLng;
@@ -38,6 +40,8 @@ public class LocationInfo {
     private String switchName;
     private String value;
 
+    private boolean isSceneOrGroup = false;
+
     public LocationInfo(int id, String name, LatLng latLng, int radius) {
         this.name = name;
         this.latLng = latLng;
@@ -45,8 +49,19 @@ public class LocationInfo {
         this.radius = radius;
     }
 
+    public boolean isSceneOrGroup() {
+        return isSceneOrGroup;
+    }
+
+    public void setSceneOrGroup(boolean sceneOrGroup) {
+        isSceneOrGroup = sceneOrGroup;
+    }
+
     public String getName() {
-        return name;
+        if (UsefulBits.isEmpty(name))
+            return "";
+        else
+            return name;
     }
 
     public void setName(String name) {
@@ -113,16 +128,26 @@ public class LocationInfo {
     public Geofence toGeofence() {
         if (radius <= 0)
             radius = 400;//default
-
         try {
             // Build a new Geofence object.
             return new Geofence.Builder()
-                    .setRequestId(String.valueOf(id))
-                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER |
-                            Geofence.GEOFENCE_TRANSITION_EXIT)
-                    .setCircularRegion(latLng.latitude, latLng.longitude, radius)
-                    .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                    .build();
+                // Set the request ID of the geofence. This is a string to identify this
+                // geofence.
+                .setRequestId(String.valueOf(id))
+                // Set the circular region of this geofence.
+                .setCircularRegion(
+                    latLng.latitude, latLng.longitude, radius
+                )
+                // Set the expiration duration of the geofence. This geofence gets automatically
+                // removed after this period of time.
+                .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                // Set the transition types of interest. Alerts are only generated for these
+                // transition. We track entry and exit transitions in this sample.
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_DWELL |
+                    Geofence.GEOFENCE_TRANSITION_EXIT)
+                .setLoiteringDelay(3000)
+                // Create the geofence.
+                .build();
         } catch (Exception ex) {
             // Wrong LocationInfo data detected
             return null;

@@ -23,7 +23,6 @@ package nl.hnogames.domoticz.UI;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.Color;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -37,9 +36,7 @@ import java.util.ArrayList;
 import nl.hnogames.domoticz.R;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticzapi.Containers.DevicesInfo;
-import nl.hnogames.domoticzapi.Containers.ExtendedStatusInfo;
 import nl.hnogames.domoticzapi.Domoticz;
-import nl.hnogames.domoticzapi.Interfaces.StatusReceiver;
 
 public class SwitchDialog implements DialogInterface.OnDismissListener {
 
@@ -57,22 +54,10 @@ public class SwitchDialog implements DialogInterface.OnDismissListener {
         this.mContext = c;
         this.mDomoticz = domoticz;
 
-        if ((new SharedPrefUtil(mContext)).darkThemeEnabled()) {
-            mdb = new MaterialDialog.Builder(mContext)
-                    .titleColorRes(R.color.white)
-                    .contentColor(Color.WHITE) // notice no 'res' postfix for literal color
-                    .dividerColorRes(R.color.white)
-                    .backgroundColorRes(R.color.primary)
-                    .positiveColorRes(R.color.white)
-                    .neutralColorRes(R.color.white)
-                    .negativeColorRes(R.color.white)
-                    .widgetColorRes(R.color.white)
-                    .buttonRippleColorRes(R.color.white);
-        } else
-            mdb = new MaterialDialog.Builder(mContext);
+        mdb = new MaterialDialog.Builder(mContext);
         mdb.customView(layout, true)
-                .theme((new SharedPrefUtil(mContext)).darkThemeEnabled() ? Theme.DARK : Theme.LIGHT)
-                .negativeText(android.R.string.cancel);
+            .theme((new SharedPrefUtil(mContext)).darkThemeEnabled() ? Theme.DARK : Theme.LIGHT)
+            .negativeText(android.R.string.cancel);
         mdb.dismissListener(this);
     }
 
@@ -84,40 +69,31 @@ public class SwitchDialog implements DialogInterface.OnDismissListener {
         mdb.title("Connect Switch");
         final MaterialDialog md = mdb.build();
         View view = md.getCustomView();
-        ListView listView = (ListView) view.findViewById(R.id.list);
+        ListView listView = view.findViewById(R.id.list);
         String[] listData = processSwitches();
         ArrayAdapter<String> adapter = new ArrayAdapter<>(mContext,
-                android.R.layout.simple_list_item_1, android.R.id.text1, listData);
+            android.R.layout.simple_list_item_1, android.R.id.text1, listData);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                mDomoticz.getStatus(info.get(position).getIdx(), new StatusReceiver() {
-                    @Override
-                    public void onReceiveStatus(ExtendedStatusInfo extendedStatusInfo) {
-                        if (!extendedStatusInfo.isProtected()) {
+                if (!info.get(position).isProtected()) {
+                    if (dismissListener != null)
+                        dismissListener.onDismiss(info.get(position).getIdx(), null, info.get(position).getName(), info.get(position).isSceneOrGroup());
+                } else {
+                    PasswordDialog passwordDialog = new PasswordDialog(mContext, mDomoticz);
+                    passwordDialog.show();
+                    passwordDialog.onDismissListener(new PasswordDialog.DismissListener() {
+                        @Override
+                        public void onDismiss(String password) {
                             if (dismissListener != null)
-                                dismissListener.onDismiss(info.get(position).getIdx(), null, info.get(position).getName());
-                        } else {
-                            PasswordDialog passwordDialog = new PasswordDialog(mContext, mDomoticz);
-                            passwordDialog.show();
-                            passwordDialog.onDismissListener(new PasswordDialog.DismissListener() {
-                                @Override
-                                public void onDismiss(String password) {
-                                    dismissListener.onDismiss(info.get(position).getIdx(), password, info.get(position).getName());
-                                }
-
-                                @Override
-                                public void onCancel() {
-                                }
-                            });
+                                dismissListener.onDismiss(info.get(position).getIdx(), password, info.get(position).getName(), info.get(position).isSceneOrGroup());
                         }
-                    }
 
-                    @Override
-                    public void onError(Exception error) {
-                    }
-                });
-
+                        @Override
+                        public void onCancel() {
+                        }
+                    });
+                }
 
                 md.dismiss();
             }
@@ -143,6 +119,6 @@ public class SwitchDialog implements DialogInterface.OnDismissListener {
     }
 
     public interface DismissListener {
-        void onDismiss(int selectedSwitchIDX, String selectedSwitchPassword, String selectedSwitchName);
+        void onDismiss(int selectedSwitchIDX, String selectedSwitchPassword, String selectedSwitchName, boolean isSceneOrGroup);
     }
 }

@@ -22,20 +22,14 @@
 package nl.hnogames.domoticz.Utils;
 
 import android.annotation.SuppressLint;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
-import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.Geofence;
-import com.google.android.gms.location.GeofencingRequest;
-import com.google.android.gms.location.LocationServices;
 import com.google.gson.Gson;
 
 import java.io.File;
@@ -49,17 +43,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import nl.hnogames.domoticz.Containers.BluetoothInfo;
 import nl.hnogames.domoticz.Containers.LocationInfo;
 import nl.hnogames.domoticz.Containers.NFCInfo;
 import nl.hnogames.domoticz.Containers.QRCodeInfo;
 import nl.hnogames.domoticz.Containers.SpeechInfo;
 import nl.hnogames.domoticz.R;
-import nl.hnogames.domoticz.Service.GeofenceTransitionsIntentService;
 import nl.hnogames.domoticz.app.AppController;
 import nl.hnogames.domoticzapi.Containers.Language;
 import nl.hnogames.domoticzapi.Containers.ServerUpdateInfo;
@@ -75,8 +70,10 @@ public class SharedPrefUtil {
     private static final String PREF_CUSTOM_WEAR = "enableWearItems";
     private static final String PREF_CUSTOM_AUTO = "enableAutoNotifications";
     private static final String PREF_ENABLE_NFC = "enableNFC";
+    private static final String PREF_ENABLE_Bluetooth = "enableBluetooth";
     private static final String PREF_CUSTOM_WEAR_ITEMS = "wearItems";
     private static final String PREF_ALWAYS_ON = "alwayson";
+    private static final String PREF_AUTO_REFRESH = "autorefresh";
     private static final String PREF_NOTIFICATION_VIBRATE = "notification_vibrate";
     private static final String PREF_NOTIFICATION_SOUND = "notification_sound";
     private static final String PREF_DISPLAY_LANGUAGE = "displayLanguage";
@@ -85,14 +82,16 @@ public class SharedPrefUtil {
     private static final String PREF_UPDATE_SERVER_AVAILABLE = "updateserveravailable";
     private static final String PREF_UPDATE_SERVER_SHOWN = "updateservershown";
     private static final String PREF_EXTRA_DATA = "extradata";
-    private static final String PREF_STARTUP_SCREEN = "startup_screen";
+    private static final String PREF_STARTUP_SCREEN = "startup_nav";
     private static final String PREF_TASK_SCHEDULED = "task_scheduled";
-    private static final String PREF_NAVIGATION_ITEMS = "enable_menu_items";
+    private static final String PREF_NAVIGATION_ITEMS = "show_nav_items";
     private static final String PREF_NFC_TAGS = "nfc_tags";
+    private static final String PREF_BLUETOOTH = "bluetooth";
     private static final String PREF_QR_CODES = "qr_codes";
     private static final String PREF_SPEECH_COMMANDS = "speech_commands";
     private static final String PREF_GEOFENCE_LOCATIONS = "geofence_locations";
     private static final String PREF_GEOFENCE_ENABLED = "geofence_enabled";
+    private static final String PREF_GEOFENCE_NOTIFICATIONS_ENABLED = "geofence_notifications_enabled";
     private static final String PREF_SPEECH_ENABLED = "enableSpeech";
     private static final String PREF_QRCODE_ENABLED = "enableQRCode";
     private static final String PREF_GEOFENCE_STARTED = "geofence_started";
@@ -113,20 +112,25 @@ public class SharedPrefUtil {
     private static final String PREF_APK_VALIDATED = "apkvalidated";
     private static final String PREF_TALK_BACK = "talkBack";
     private static final String PREF_ALARM_TIMER = "alarmNotificationTimer";
+    private static final String PREF_TEMP_MIN = "tempMinValue";
+    private static final String PREF_TEMP_MAX = "tempMaxValue";
+    private static final String PREF_WIDGET_ENABLED = "enableWidgets";
+    private static final String PREF_SORT_LIST = "customSortList";
+    private static final String PREF_DASHBOARD_CLOCK = "dashboardShowClock";
 
+    private static final int DEFAULT_STARTUP_SCREEN = 1;
     private final String TAG = "Shared Pref util";
     @SuppressWarnings("FieldCanBeLocal")
-    private final String PREF_SORT_LIKESERVER = "sort_dashboardLikeServer";
+    private final String PREF_SORT_CUSTOM = "sortCustom";
+    private final String PREF_LOCK_SORT_CUSTOM = "lockSortCustom";
     @SuppressWarnings("FieldCanBeLocal")
     private final String PREF_DARK_THEME = "darkTheme";
     private final String PREF_SWITCH_BUTTONS = "switchButtons";
     @SuppressWarnings("FieldCanBeLocal")
     private final String PREF_DASHBOARD_LIST = "dashboardAsList";
-
     private Context mContext;
     private SharedPreferences prefs;
     private SharedPreferences.Editor editor;
-    private GoogleApiClient mApiClient = null;
 
     @SuppressLint("CommitPrefEdits")
     public SharedPrefUtil(Context mContext) {
@@ -143,12 +147,25 @@ public class SharedPrefUtil {
         return prefs.getBoolean(PREF_DASHBOARD_LIST, true);
     }
 
+    public boolean addClockToDashboard() {
+        return prefs.getBoolean(PREF_DASHBOARD_CLOCK, false);
+    }
+
     public boolean showSwitchesAsButtons() {
         return prefs.getBoolean(PREF_SWITCH_BUTTONS, false);
     }
 
     public boolean checkForUpdatesEnabled() {
         return prefs.getBoolean(PREF_CHECK_UPDATES, false);
+    }
+
+    public boolean IsWidgetsEnabled() {
+        return prefs.getBoolean(PREF_WIDGET_ENABLED, false);
+    }
+
+    public void SetWidgetsEnabled(Boolean set) {
+        editor.putBoolean(PREF_WIDGET_ENABLED, set).apply();
+        editor.commit();
     }
 
     public boolean isMultiServerEnabled() {
@@ -172,12 +189,20 @@ public class SharedPrefUtil {
         return prefs.getBoolean(PREF_OVERWRITE_NOTIFICATIONS, false);
     }
 
-    public boolean isDashboardSortedLikeServer() {
-        return prefs.getBoolean(PREF_SORT_LIKESERVER, true);
+    public boolean enableCustomSorting() {
+        return prefs.getBoolean(PREF_SORT_CUSTOM, false);
+    }
+
+    public boolean isCustomSortingLocked() {
+        return prefs.getBoolean(PREF_LOCK_SORT_CUSTOM, false);
     }
 
     public boolean getAlwaysOn() {
         return prefs.getBoolean(PREF_ALWAYS_ON, false);
+    }
+
+    public boolean getAutoRefresh() {
+        return prefs.getBoolean(PREF_AUTO_REFRESH, false);
     }
 
     public int getAlarmTimer() {
@@ -187,6 +212,62 @@ public class SharedPrefUtil {
         } catch (Exception ex) {
             editor.putString(PREF_ALARM_TIMER, "5").apply();
             return 5;
+        }
+    }
+
+    public int getTemperatureSetMin(String tempType) {
+        if (UsefulBits.isEmpty(tempType) || tempType.equals("C")) {
+            try {
+                int value = Integer.valueOf(prefs.getString(PREF_TEMP_MIN, "10"));
+                if (value == -1) {
+                    editor.putString(PREF_TEMP_MIN, "10").apply();
+                    return 10;
+                }
+                return value;
+            } catch (Exception ex) {
+                editor.putString(PREF_TEMP_MIN, "10").apply();
+                return 10;
+            }
+        } else {
+            try {
+                int value = Integer.valueOf(prefs.getString(PREF_TEMP_MIN, "60"));
+                if (value == -1) {
+                    editor.putString(PREF_TEMP_MIN, "60").apply();
+                    return 60;
+                }
+                return value;
+            } catch (Exception ex) {
+                editor.putString(PREF_TEMP_MIN, "60").apply();
+                return 60;
+            }
+        }
+    }
+
+    public int getTemperatureSetMax(String tempType) {
+        if (UsefulBits.isEmpty(tempType) || tempType.equals("C")) {
+            try {
+                int value = Integer.valueOf(prefs.getString(PREF_TEMP_MAX, "30"));
+                if (value == -1) {
+                    editor.putString(PREF_TEMP_MAX, "30").apply();
+                    return 30;
+                }
+                return value;
+            } catch (Exception ex) {
+                editor.putString(PREF_TEMP_MAX, "30").apply();
+                return 30;
+            }
+        } else {
+            try {
+                int value = Integer.valueOf(prefs.getString(PREF_TEMP_MAX, "90"));
+                if (value == -1) {
+                    editor.putString(PREF_TEMP_MAX, "90").apply();
+                    return 90;
+                }
+                return value;
+            } catch (Exception ex) {
+                editor.putString(PREF_TEMP_MAX, "90").apply();
+                return 90;
+            }
         }
     }
 
@@ -221,6 +302,19 @@ public class SharedPrefUtil {
         editor.commit();
     }
 
+    public void deleteSmallWidget(int widgetID, boolean isScene) {
+        editor.remove("SMALLWIDGET" + widgetID);
+        if (!isScene)
+            editor.remove("SMALLWIDGETIDX" + widgetID);
+        else
+            editor.remove("WIDGETIDXSCENE" + widgetID);
+        editor.remove("SMALLWIDGETPASSWORD" + widgetID);
+        editor.remove("SMALLWIDGETLAYOUT" + widgetID);
+        editor.remove("SMALLWIDGETVALUE" + widgetID);
+        editor.remove("SMALLWIDGETSCENE" + widgetID);
+        editor.commit();
+    }
+
     public void setSmallWidgetIDX(int widgetID, int idx, boolean isScene, String password, String value, int layout) {
         editor.putInt("SMALLWIDGET" + widgetID, idx).apply();
         editor.putBoolean("SMALLWIDGETSCENE" + widgetID, isScene).apply();
@@ -248,6 +342,15 @@ public class SharedPrefUtil {
 
     public boolean getSmallWidgetisScene(int widgetID) {
         return prefs.getBoolean("SMALLWIDGETSCENE" + widgetID, false);
+    }
+
+    public void deleteSecurityWidget(int widgetID) {
+        editor.remove("WIDGETSECURITY" + widgetID);
+        editor.remove("SMALLWIDGETIDX" + widgetID);
+        editor.remove("WIDGETSECURITYPIN" + widgetID);
+        editor.remove("WIDGETSECURITYPINLAYOUT" + widgetID);
+        editor.remove("WIDGETSECURITYVALUE" + widgetID);
+        editor.commit();
     }
 
     public void setSecurityWidgetIDX(int widgetID, int idx, String value, String pin, int layout) {
@@ -280,6 +383,19 @@ public class SharedPrefUtil {
 
     public String getWidgetPassword(int widgetID) {
         return prefs.getString("WIDGETPASSWORD" + widgetID, null);
+    }
+
+    public void deleteWidget(int widgetID, boolean isScene) {
+        editor.remove("WIDGET" + widgetID);
+        if (!isScene)
+            editor.remove("WIDGETIDX" + widgetID);
+        else
+            editor.remove("WIDGETIDXSCENE" + widgetID);
+        editor.remove("WIDGETPASSWORD" + widgetID);
+        editor.remove("WIDGETLAYOUT" + widgetID);
+        editor.remove("WIDGETVALUE" + widgetID);
+        editor.remove("WIDGETSCENE" + widgetID);
+        editor.commit();
     }
 
     public int getWidgetLayout(int widgetID) {
@@ -324,6 +440,23 @@ public class SharedPrefUtil {
         editor.putBoolean(PREF_WELCOME_SUCCESS, success).apply();
     }
 
+    public List<String> getSortingList(String listName) {
+        if (!prefs.contains(listName + PREF_SORT_LIST))
+            return null;
+        String sortString = prefs.getString(listName + PREF_SORT_LIST, null);
+        if (!UsefulBits.isEmpty(sortString))
+            return Arrays.asList(sortString.split(","));
+        return null;
+    }
+
+    public void saveSortingList(String listName, List<String> ids) {
+        if (ids != null)
+            editor.putString(listName + PREF_SORT_LIST, UsefulBits.Join(ids)).apply();
+        else
+            editor.putString(listName + PREF_SORT_LIST, null).apply();
+        editor.commit();
+    }
+
     /**
      * Get's the users preference to vibrate on notifications
      *
@@ -353,7 +486,6 @@ public class SharedPrefUtil {
         Set<String> notifications = prefs.getStringSet(PREF_SUPPRESS_NOTIFICATIONS, null);
         if (notifications != null) {
             List<String> notificationsValues = new ArrayList<>();
-
             for (String s : notifications) {
                 notificationsValues.add(s);
             }
@@ -428,20 +560,29 @@ public class SharedPrefUtil {
         if (UsefulBits.isEmpty(notification))
             return;
 
-        Set<String> notifications;
-        if (!prefs.contains(PREF_RECEIVED_NOTIFICATIONS)) {
-            notifications = new HashSet<>();
-            notifications.add(notification);
-            editor.putStringSet(PREF_RECEIVED_NOTIFICATIONS, notifications).apply();
-        } else {
-            notifications = prefs.getStringSet(PREF_RECEIVED_NOTIFICATIONS, null);
-            if (notifications == null)
+        try {
+            Set<String> notifications;
+            if (!prefs.contains(PREF_RECEIVED_NOTIFICATIONS)) {
                 notifications = new HashSet<>();
-            if (!notifications.contains(notification)) {
                 notifications.add(notification);
                 editor.putStringSet(PREF_RECEIVED_NOTIFICATIONS, notifications).apply();
+            } else {
+                notifications = prefs.getStringSet(PREF_RECEIVED_NOTIFICATIONS, null);
+                if (notifications == null)
+                    notifications = new HashSet<>();
+                if (!notifications.contains(notification)) {
+                    notifications.add(notification);
+                    editor.putStringSet(PREF_RECEIVED_NOTIFICATIONS, notifications).apply();
+                }
             }
+        } catch (Exception ex) {
+            Log.e(TAG, "Failed to save new type of notification: " + ex.getMessage());
         }
+    }
+
+    public void clearPreviousNotification() {
+        editor.putStringSet(PREF_RECEIVED_NOTIFICATIONS_LOG, null).apply();
+        editor.putStringSet(PREF_RECEIVED_NOTIFICATIONS, null).apply();
     }
 
     /**
@@ -483,7 +624,7 @@ public class SharedPrefUtil {
 
     public void removeWizard() {
         // 1 if start up screen is 0 (wizard) change to dashboard
-        if (getStartupScreenIndex() == 0) setStartupScreenIndex(1);
+        if (getStartupScreenIndex() == 0) setStartupScreenIndex(DEFAULT_STARTUP_SCREEN);
 
         //2 remove wizard from navigation
         String removeWizard = "";
@@ -505,14 +646,32 @@ public class SharedPrefUtil {
         }
     }
 
+    public int getActualStartupScreenIndex() {
+        String startupScreenSelectedValue = prefs.getString(PREF_STARTUP_SCREEN, null);
+        if (startupScreenSelectedValue == null)
+            return DEFAULT_STARTUP_SCREEN;
+        else {
+            String[] startupScreenValues = mContext.getResources().getStringArray(R.array.startup_actions);
+            int i = 0;
+            for (String screen : startupScreenValues) {
+                if (screen.equalsIgnoreCase(startupScreenSelectedValue)) {
+                    return i;
+                }
+                i++;
+            }
+            //else, could not find startup screen
+            setStartupScreenIndex(DEFAULT_STARTUP_SCREEN);
+            return DEFAULT_STARTUP_SCREEN;
+        }
+    }
+
     public int getStartupScreenIndex() {
         String startupScreenSelectedValue = prefs.getString(PREF_STARTUP_SCREEN, null);
-        if (startupScreenSelectedValue == null) return 0;
+        if (startupScreenSelectedValue == null)
+            return DEFAULT_STARTUP_SCREEN;
         else {
-            String[] startupScreenValues =
-                    mContext.getResources().getStringArray(R.array.drawer_actions);
+            String[] startupScreenValues = mContext.getResources().getStringArray(R.array.drawer_actions);
             int i = 0;
-
             for (String screen : startupScreenValues) {
                 if (screen.equalsIgnoreCase(startupScreenSelectedValue)) {
                     return i;
@@ -520,25 +679,45 @@ public class SharedPrefUtil {
                 i++;
             }
 
-            //fix, could not find startup screen
-            setStartupScreenIndex(0);
-            return 0;
+            // Check for dashboard actions
+            startupScreenValues = mContext.getResources().getStringArray(R.array.dashboard_actions);
+            for (String screen : startupScreenValues) {
+                if (screen.equalsIgnoreCase(startupScreenSelectedValue)) {
+                    return 1;
+                }
+            }
+
+            // Check for temperature actions
+            startupScreenValues = mContext.getResources().getStringArray(R.array.temperature_actions);
+            for (String screen : startupScreenValues) {
+                if (screen.equalsIgnoreCase(startupScreenSelectedValue)) {
+                    return 2;
+                }
+            }
+
+            //else, could not find startup screen
+            setStartupScreenIndex(DEFAULT_STARTUP_SCREEN);
+            return DEFAULT_STARTUP_SCREEN;
         }
     }
 
     public void setStartupScreenIndex(int position) {
         String[] startupScreenValues =
-                mContext.getResources().getStringArray(R.array.drawer_actions);
+            mContext.getResources().getStringArray(R.array.startup_actions);
         String startupScreenValue;
 
         try {
             startupScreenValue = startupScreenValues[position];
         } catch (IndexOutOfBoundsException e) {
             e.printStackTrace();
-            startupScreenValue = startupScreenValues[0];
+            startupScreenValue = startupScreenValues[DEFAULT_STARTUP_SCREEN];
         }
 
         editor.putString(PREF_STARTUP_SCREEN, startupScreenValue).apply();
+    }
+
+    public String getStartupScreen() {
+        return prefs.getString(PREF_STARTUP_SCREEN, null);
     }
 
     public String[] getWearSwitches() {
@@ -686,6 +865,10 @@ public class SharedPrefUtil {
         return prefs.getBoolean(PREF_ENABLE_NFC, false);
     }
 
+    public boolean isBluetoothEnabled() {
+        return prefs.getBoolean(PREF_ENABLE_Bluetooth, false);
+    }
+
     public boolean isServerUpdateAvailable() {
         return prefs.getBoolean(PREF_UPDATE_SERVER_AVAILABLE, false);
     }
@@ -714,6 +897,16 @@ public class SharedPrefUtil {
 
     public void setGeofenceEnabled(boolean enabled) {
         editor.putBoolean(PREF_GEOFENCE_ENABLED, enabled).apply();
+        editor.commit();
+    }
+
+    public boolean isGeofenceNotificationsEnabled() {
+        return prefs.getBoolean(PREF_GEOFENCE_NOTIFICATIONS_ENABLED, false);
+    }
+
+    public void setGeofenceNotificationsEnabled(boolean enabled) {
+        editor.putBoolean(PREF_GEOFENCE_NOTIFICATIONS_ENABLED, enabled).apply();
+        editor.commit();
     }
 
     public boolean isTalkBackEnabled() {
@@ -721,7 +914,7 @@ public class SharedPrefUtil {
     }
 
     public boolean isAPKValidated() {
-        return prefs.getBoolean(PREF_APK_VALIDATED, true);
+        return true;
     }
 
     public void setAPKValidated(boolean valid) {
@@ -749,7 +942,7 @@ public class SharedPrefUtil {
             String jsonNFCs = prefs.getString(PREF_NFC_TAGS, null);
             Gson gson = new Gson();
             NFCInfo[] item = gson.fromJson(jsonNFCs,
-                    NFCInfo[].class);
+                NFCInfo[].class);
             nfcs = Arrays.asList(item);
             for (NFCInfo n : nfcs) {
                 oReturnValue.add(n);
@@ -757,6 +950,29 @@ public class SharedPrefUtil {
         } else
             return null;
 
+        return oReturnValue;
+    }
+
+    public void saveBluetoothList(List<BluetoothInfo> list) {
+        Gson gson = new Gson();
+        editor.putString(PREF_BLUETOOTH, gson.toJson(list));
+        editor.commit();
+    }
+
+    public ArrayList<BluetoothInfo> getBluetoothList() {
+        ArrayList<BluetoothInfo> oReturnValue = new ArrayList<>();
+        List<BluetoothInfo> Bluetooths;
+        if (prefs.contains(PREF_BLUETOOTH)) {
+            String jsonBluetooths = prefs.getString(PREF_BLUETOOTH, null);
+            Gson gson = new Gson();
+            BluetoothInfo[] item = gson.fromJson(jsonBluetooths,
+                BluetoothInfo[].class);
+            Bluetooths = Arrays.asList(item);
+            for (BluetoothInfo n : Bluetooths) {
+                oReturnValue.add(n);
+            }
+        } else
+            return null;
         return oReturnValue;
     }
 
@@ -773,7 +989,7 @@ public class SharedPrefUtil {
             String jsonNFCs = prefs.getString(PREF_QR_CODES, null);
             Gson gson = new Gson();
             QRCodeInfo[] item = gson.fromJson(jsonNFCs,
-                    QRCodeInfo[].class);
+                QRCodeInfo[].class);
             qrs = Arrays.asList(item);
             for (QRCodeInfo n : qrs) {
                 oReturnValue.add(n);
@@ -797,7 +1013,7 @@ public class SharedPrefUtil {
             String jsonNFCs = prefs.getString(PREF_SPEECH_COMMANDS, null);
             Gson gson = new Gson();
             SpeechInfo[] item = gson.fromJson(jsonNFCs,
-                    SpeechInfo[].class);
+                SpeechInfo[].class);
             qrs = Arrays.asList(item);
             for (SpeechInfo n : qrs) {
                 oReturnValue.add(n);
@@ -816,7 +1032,7 @@ public class SharedPrefUtil {
     }
 
     public ArrayList<LocationInfo> getLocations() {
-        List<LocationInfo> returnValue = new ArrayList<>();
+        ArrayList<LocationInfo> returnValue = new ArrayList<>();
         List<LocationInfo> locations;
         boolean incorrectDetected = false;
 
@@ -824,9 +1040,8 @@ public class SharedPrefUtil {
             String jsonLocations = prefs.getString(PREF_GEOFENCE_LOCATIONS, null);
             Gson gson = new Gson();
             LocationInfo[] locationItem = gson.fromJson(jsonLocations,
-                    LocationInfo[].class);
+                LocationInfo[].class);
             locations = Arrays.asList(locationItem);
-
             for (LocationInfo l : locations) {
                 if (l.toGeofence() != null) {
                     returnValue.add(l);
@@ -837,13 +1052,12 @@ public class SharedPrefUtil {
             if (incorrectDetected) {
                 saveLocations(returnValue);
                 Toast.makeText(mContext,
-                        R.string.geofence_error_recreateLocations,
-                        Toast.LENGTH_LONG).show();
+                    R.string.geofence_error_recreateLocations,
+                    Toast.LENGTH_LONG).show();
             }
         } else
             return null;
-
-        return (ArrayList<LocationInfo>) returnValue;
+        return returnValue;
     }
 
     public LocationInfo getLocation(int id) {
@@ -852,7 +1066,6 @@ public class SharedPrefUtil {
             if (l.getID() == id)
                 return l;
         }
-
         return null;
     }
 
@@ -890,52 +1103,68 @@ public class SharedPrefUtil {
             for (LocationInfo l : removeLocations) {
                 locations.remove(l);
             }
-
             saveLocations(locations);
         }
     }
 
     public boolean saveSharedPreferencesToFile(File dst) {
-        boolean isServerUpdateAvailableValue = false;
+        try {
+            boolean isServerUpdateAvailableValue = false;
+            ServerUpdateInfo mServerUpdateInfo = new ServerUtil(mContext).getActiveServer().getServerUpdateInfo(mContext);
 
-        ServerUpdateInfo mServerUpdateInfo = new ServerUtil(mContext).getActiveServer().getServerUpdateInfo(mContext);
+            // Before saving to file set server update available preference to false
+            if (isServerUpdateAvailable()) {
+                isServerUpdateAvailableValue = true;
+                mServerUpdateInfo.setUpdateAvailable(false);
+            }
 
-        // Before saving to file set server update available preference to false
-        if (isServerUpdateAvailable()) {
-            isServerUpdateAvailableValue = true;
-            mServerUpdateInfo.setUpdateAvailable(false);
-        }
-
-        boolean result = true;
-        if (dst.exists())
-            result = dst.delete();
-
-        if (result) {
-            ObjectOutputStream output = null;
-
-            //noinspection TryWithIdenticalCatches
-            try {
-                output = new ObjectOutputStream(new FileOutputStream(dst));
-                output.writeObject(this.prefs.getAll());
-                result = true;
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    if (output != null) {
-                        output.flush();
-                        output.close();
-                    }
-                } catch (IOException ex) {
-                    ex.printStackTrace();
+            Map<String, ?> oAllPrefs = this.prefs.getAll();
+            HashMap<String, Object> oSavePrefs = new HashMap<String, Object>();
+            for (Map.Entry<String, ?> entry : oAllPrefs.entrySet()) {
+                //Log.d("map values", entry.getKey() + ": " + entry.getValue().toString());
+                if (entry.getKey().startsWith("WIDGET") || entry.getKey().startsWith("SMALLWIDGET"))
+                    Log.i("PREFS", "Skipped: " + entry.getKey() + ": " + entry.getValue().toString());
+                else if (entry.getKey().equals("receivedNotifications") || entry.getKey().equals("receivedNotificationsLog"))
+                    Log.i("PREFS", "Skipped: " + entry.getKey() + ": " + entry.getValue().toString());
+                else {
+                    Log.i("PREFS", "Exported: " + entry.getKey() + ": " + entry.getValue().toString());
+                    oSavePrefs.put(entry.getKey(), entry.getValue());
                 }
             }
+
+            boolean result = true;
+            if (dst.exists())
+                result = dst.delete();
+
+            if (result) {
+                ObjectOutputStream output = null;
+
+                //noinspection TryWithIdenticalCatches
+                try {
+                    output = new ObjectOutputStream(new FileOutputStream(dst));
+                    output.writeObject(oSavePrefs);
+                    result = true;
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        if (output != null) {
+                            output.flush();
+                            output.close();
+                        }
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+            // Write original settings to preferences
+            if (isServerUpdateAvailableValue) mServerUpdateInfo.setUpdateAvailable(true);
+            return result;
+        } catch (Exception ex) {
+            return false;
         }
-        // Write original settings to preferences
-        if (isServerUpdateAvailableValue) mServerUpdateInfo.setUpdateAvailable(true);
-        return result;
     }
 
     @SuppressWarnings({"UnnecessaryUnboxing", "unchecked"})
@@ -945,32 +1174,36 @@ public class SharedPrefUtil {
         //noinspection TryWithIdenticalCatches
         try {
             input = new ObjectInputStream(new FileInputStream(src));
-            editor.clear();
+            //editor.clear();
             Map<String, ?> entries = (Map<String, ?>) input.readObject();
             for (Map.Entry<String, ?> entry : entries.entrySet()) {
                 Object v = entry.getValue();
                 String key = entry.getKey();
                 if (v != null && !UsefulBits.isEmpty(key)) {
-                    if (v instanceof Boolean)
-                        editor.putBoolean(key, ((Boolean) v).booleanValue());
-                    else if (v instanceof Float)
-                        editor.putFloat(key, ((Float) v).floatValue());
-                    else if (v instanceof Integer)
-                        editor.putInt(key, ((Integer) v).intValue());
-                    else if (v instanceof Long)
-                        editor.putLong(key, ((Long) v).longValue());
-                    else if (v instanceof String)
-                        editor.putString(key, ((String) v));
-                    else if (v instanceof Set)
-                        editor.putStringSet(key, ((Set<String>) v));
-                    else
-                        Log.v(TAG, "Could not load pref: " + key + " | " + v.getClass());
+                    if (entry.getKey().startsWith("WIDGET") || entry.getKey().startsWith("SMALLWIDGET"))
+                        Log.i("PREFS", "Skipped: " + entry.getKey() + ": " + entry.getValue().toString());
+                    else if (entry.getKey().equals("receivedNotifications") || entry.getKey().equals("receivedNotificationsLog"))
+                        Log.i("PREFS", "Skipped: " + entry.getKey() + ": " + entry.getValue().toString());
+                    else {
+                        if (v instanceof Boolean)
+                            editor.putBoolean(key, ((Boolean) v).booleanValue());
+                        else if (v instanceof Float)
+                            editor.putFloat(key, ((Float) v).floatValue());
+                        else if (v instanceof Integer)
+                            editor.putInt(key, ((Integer) v).intValue());
+                        else if (v instanceof Long)
+                            editor.putLong(key, ((Long) v).longValue());
+                        else if (v instanceof String)
+                            editor.putString(key, ((String) v));
+                        else if (v instanceof Set)
+                            editor.putStringSet(key, ((Set<String>) v));
+                        else
+                            Log.v(TAG, "Could not load pref: " + key + " | " + v.getClass());
+                    }
                 }
             }
             editor.commit();
             res = true;
-
-            if (isGeofenceEnabled()) enableGeoFenceService();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -1129,75 +1362,5 @@ public class SharedPrefUtil {
                     mGeofenceList.add(locationInfo.toGeofence());
             return mGeofenceList;
         } else return null;
-    }
-
-    public void enableGeoFenceService() {
-        if (isGeofenceEnabled()) {
-            //only continue when we have the correct permissions!
-            if (PermissionsUtil.canAccessLocation(mContext)) {
-                final List<Geofence> mGeofenceList = getEnabledGeofences();
-                if (mGeofenceList != null && mGeofenceList.size() > 0) {
-                    mApiClient = new GoogleApiClient.Builder(mContext)
-                            .addApi(LocationServices.API)
-                            .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-                                @Override
-                                public void onConnected(Bundle bundle) {
-                                    PendingIntent mGeofenceRequestIntent =
-                                            getGeofenceTransitionPendingIntent();
-
-                                    // First remove all GeoFences
-                                    try {
-                                        LocationServices.GeofencingApi.removeGeofences(mApiClient,
-                                                mGeofenceRequestIntent);
-                                    } catch (Exception ignored) {
-                                    }
-
-                                    //noinspection ResourceType
-                                    LocationServices
-                                            .GeofencingApi
-                                            .addGeofences(mApiClient,
-                                                    getGeofencingRequest(mGeofenceList),
-                                                    mGeofenceRequestIntent);
-                                }
-
-                                @Override
-                                public void onConnectionSuspended(int i) {
-                                }
-                            })
-                            .build();
-                    mApiClient.connect();
-                } else {
-                    // No enabled geofences, disabling
-                    setGeofenceEnabled(false);
-                }
-            }
-        }
-    }
-
-    public void stopGeofenceService() {
-        if (mApiClient != null) {
-            // If mApiClient is null enableGeofenceService was not called
-            // thus there is nothing to stop
-            PendingIntent mGeofenceRequestIntent = getGeofenceTransitionPendingIntent();
-            LocationServices.GeofencingApi.removeGeofences(mApiClient, mGeofenceRequestIntent);
-        }
-    }
-
-    private GeofencingRequest getGeofencingRequest(List<Geofence> mGeofenceList) {
-        GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
-        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER);
-        builder.addGeofences(mGeofenceList);
-        return builder.build();
-    }
-
-    /**
-     * Create a PendingIntent that triggers GeofenceTransitionIntentService when a geofence
-     * transition occurs.
-     *
-     * @return Intent which will be called
-     */
-    public PendingIntent getGeofenceTransitionPendingIntent() {
-        Intent intent = new Intent(mContext, GeofenceTransitionsIntentService.class);
-        return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 }

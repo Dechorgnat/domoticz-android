@@ -24,9 +24,6 @@ package nl.hnogames.domoticz.Widgets;
 import android.appwidget.AppWidgetManager;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,6 +36,9 @@ import com.afollestad.materialdialogs.MaterialDialog;
 
 import java.util.ArrayList;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
+import androidx.core.view.MenuItemCompat;
 import nl.hnogames.domoticz.Adapters.WidgetsAdapter;
 import nl.hnogames.domoticz.BuildConfig;
 import nl.hnogames.domoticz.R;
@@ -88,6 +88,10 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
             this.finish();
         }
 
+        if (!mSharedPrefs.IsWidgetsEnabled()) {
+            Toast.makeText(this, getString(R.string.wizard_widgets) + " " + getString(R.string.widget_disabled), Toast.LENGTH_LONG).show();
+            this.finish();
+        }
         domoticz = new Domoticz(this, AppController.getInstance().getRequestQueue());
         this.setTitle(getString(R.string.pick_device_title));
         if (getSupportActionBar() != null) {
@@ -148,7 +152,7 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
                         mNewDevicesInfo.add(0, oQRCodeRow);
                     }
 
-                    ListView listView = (ListView) findViewById(R.id.list);
+                    ListView listView = findViewById(R.id.list);
                     adapter = new WidgetsAdapter(SmallWidgetConfigurationActivity.this, domoticz, mNewDevicesInfo);
                     listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                         @Override
@@ -157,7 +161,7 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
 
                             if (mDeviceInfo.isProtected()) {
                                 PasswordDialog passwordDialog = new PasswordDialog(
-                                        SmallWidgetConfigurationActivity.this, domoticz);
+                                    SmallWidgetConfigurationActivity.this, domoticz);
                                 passwordDialog.show();
                                 passwordDialog.onDismissListener(new PasswordDialog.DismissListener() {
                                     @Override
@@ -202,17 +206,17 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
     }
 
     private void showSelectorDialog(final DevicesInfo selector, final String pass) {
-        final String[] levelNames = selector.getLevelNames();
+        final ArrayList<String> levelNames = selector.getLevelNames();
         new MaterialDialog.Builder(this)
-                .title(R.string.selector_value)
-                .items(levelNames)
-                .itemsCallback(new MaterialDialog.ListCallback() {
-                    @Override
-                    public void onSelection(MaterialDialog dialog, View view, int which, CharSequence text) {
-                        getBackground(selector, pass, String.valueOf(text));
-                    }
-                })
-                .show();
+            .title(R.string.selector_value)
+            .items(levelNames)
+            .itemsCallback(new MaterialDialog.ListCallback() {
+                @Override
+                public void onSelection(MaterialDialog dialog, View view, int which, CharSequence text) {
+                    getBackground(selector, pass, String.valueOf(text));
+                }
+            })
+            .show();
     }
 
     private int getWidgetLayout(String background, DevicesInfo mSelectedSwitch) {
@@ -234,17 +238,17 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
 
     private void getBackground(final DevicesInfo mSelectedSwitch, final String password, final String value) {
         new MaterialDialog.Builder(this)
-                .title(this.getString(R.string.widget_background))
-                .items(new String[]{this.getString(R.string.widget_dark), this.getString(R.string.widget_light), this.getString(R.string.widget_transparent_dark), this.getString(R.string.widget_transparent_light)})
-                .itemsCallbackSingleChoice(-1, new MaterialDialog.ListCallbackSingleChoice() {
-                    @Override
-                    public boolean onSelection(MaterialDialog dialog, View view, int which, CharSequence text) {
-                        showAppWidget(mSelectedSwitch, password, value, getWidgetLayout(String.valueOf(text), mSelectedSwitch));
-                        return true;
-                    }
-                })
-                .positiveText(R.string.ok)
-                .show();
+            .title(this.getString(R.string.widget_background))
+            .items(new String[]{this.getString(R.string.widget_dark), this.getString(R.string.widget_light), this.getString(R.string.widget_transparent_dark), this.getString(R.string.widget_transparent_light)})
+            .itemsCallbackSingleChoice(-1, new MaterialDialog.ListCallbackSingleChoice() {
+                @Override
+                public boolean onSelection(MaterialDialog dialog, View view, int which, CharSequence text) {
+                    showAppWidget(mSelectedSwitch, password, value, getWidgetLayout(String.valueOf(text), mSelectedSwitch));
+                    return true;
+                }
+            })
+            .positiveText(R.string.ok)
+            .show();
     }
 
     private void showAppWidget(DevicesInfo mSelectedSwitch, String password, String value, int layoutId) {
@@ -254,7 +258,7 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
         int idx = mSelectedSwitch.getIdx();
         if (extras != null) {
             mAppWidgetId = extras.getInt(EXTRA_APPWIDGET_ID,
-                    INVALID_APPWIDGET_ID);
+                INVALID_APPWIDGET_ID);
 
             if (UsefulBits.isEmpty(mSelectedSwitch.getType())) {
                 Log.i(TAG, "Widget without a type saved");
@@ -270,7 +274,7 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
             }
 
             Intent startService = new Intent(SmallWidgetConfigurationActivity.this,
-                    WidgetProviderSmall.UpdateWidgetService.class);
+                WidgetProviderSmall.UpdateWidgetService.class);
             startService.putExtra(EXTRA_APPWIDGET_ID, mAppWidgetId);
             startService.setAction("FROM CONFIGURATION ACTIVITY");
             startService(startService);
@@ -298,7 +302,7 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_search, menu);
         MenuItem searchMenuItem = menu.findItem(R.id.search);
         searchViewAction = (SearchView) MenuItemCompat
-                .getActionView(searchMenuItem);
+            .getActionView(searchMenuItem);
         searchViewAction.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -317,17 +321,20 @@ public class SmallWidgetConfigurationActivity extends AppCompatActivity {
     private boolean SmallWidgetSupported(DevicesInfo s) {
         if (s != null) {
             if (s.getSwitchTypeVal() == 0 &&
-                    (UsefulBits.isEmpty(s.getSwitchType()))) {
+                (UsefulBits.isEmpty(s.getSwitchType()))) {
                 switch (s.getType()) {
                     case DomoticzValues.Scene.Type.SCENE:
                     case DomoticzValues.Scene.Type.GROUP:
                         return true;
                 }
+            } else if (s.getSwitchTypeVal() == 0 &&
+                (s.getSwitchType().equals(DomoticzValues.Device.Type.Name.SECURITY))) {
+                return false; //security panel is not supported for small widgets
             } else {
                 switch (s.getSwitchTypeVal()) {
                     case DomoticzValues.Device.Type.Value.ON_OFF:
                     case DomoticzValues.Device.Type.Value.MEDIAPLAYER:
-                    case DomoticzValues.Device.Type.Value.DOORLOCK:
+                    case DomoticzValues.Device.Type.Value.DOORCONTACT:
                     case DomoticzValues.Device.Type.Value.X10SIREN:
                     case DomoticzValues.Device.Type.Value.PUSH_ON_BUTTON:
                     case DomoticzValues.Device.Type.Value.SMOKE_DETECTOR:

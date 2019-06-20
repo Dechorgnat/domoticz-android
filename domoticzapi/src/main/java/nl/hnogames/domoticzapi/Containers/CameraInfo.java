@@ -21,7 +21,7 @@
 
 package nl.hnogames.domoticzapi.Containers;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -97,6 +97,9 @@ public class CameraInfo implements Comparable, Serializable {
         return Address;
     }
 
+    public String getTotalImageURL() {
+        return "http://" + Address + ":"+Port + "/" + ImageURL;
+    }
     public String getImageURL() {
         return ImageURL;
     }

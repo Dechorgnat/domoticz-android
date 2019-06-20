@@ -54,7 +54,7 @@
     <string name="wizard_filter">Filters</string>
     <string name="wizard_filter_description">You can filter devices per status (on/off). Check the right upper menu icon for filtering!</string>
 
-    <string name="wizard_widgets">Widgets!!</string>
+    <string name="wizard_widgets">Widgets (Beta)</string>
     <string name="wizard_widgets_description">You can put some widgets on your home screen!</string>
 
     <string name="wizard_menuitem">Disable Wizard</string>
@@ -62,6 +62,8 @@
 
     <string name="wizard_nfc">NFC</string>
     <string name="wizard_nfc_description">You are able to toggle switches via NFC!</string>
+
+    <string name="wizard_bluetooth_description">You are able to toggle switches via Bluetooth connections!</string>
 
     <string name="wizard_qrcode">QR Code</string>
     <string name="wizard_qrcode_description">Toggle switches by scanning a QR Code (or barcode)!</string>

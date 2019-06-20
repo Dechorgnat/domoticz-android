@@ -23,11 +23,13 @@ package nl.hnogames.domoticz.Fragments;
 
 import android.content.Context;
 import android.os.AsyncTask;
-import android.support.design.widget.Snackbar;
-import android.support.v4.widget.SwipeRefreshLayout;
+import android.os.Bundle;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import hugo.weaving.DebugLog;
 import jp.wasabeef.recyclerview.adapters.SlideInBottomAnimationAdapter;
 import nl.hnogames.domoticz.Adapters.EventsAdapter;
@@ -39,7 +41,11 @@ import nl.hnogames.domoticz.Utils.SerializableManager;
 import nl.hnogames.domoticz.Utils.UsefulBits;
 import nl.hnogames.domoticz.app.DomoticzRecyclerFragment;
 import nl.hnogames.domoticzapi.Containers.EventInfo;
+import nl.hnogames.domoticzapi.Containers.UserInfo;
+import nl.hnogames.domoticzapi.DomoticzValues;
 import nl.hnogames.domoticzapi.Interfaces.EventReceiver;
+import nl.hnogames.domoticzapi.Interfaces.setCommandReceiver;
+import nl.hnogames.domoticzapi.Utils.PhoneConnectionUtil;
 
 public class Events extends DomoticzRecyclerFragment implements DomoticzFragmentListener {
 
@@ -53,9 +59,8 @@ public class Events extends DomoticzRecyclerFragment implements DomoticzFragment
     public void refreshFragment() {
         if (mSwipeRefreshLayout != null)
             mSwipeRefreshLayout.setRefreshing(true);
-        processUserVariables();
+        processEvents();
     }
-
 
     @Override
     public void onConnectionFailed() {
@@ -66,9 +71,16 @@ public class Events extends DomoticzRecyclerFragment implements DomoticzFragment
     @DebugLog
     public void onAttach(Context context) {
         super.onAttach(context);
+        onAttachFragment(this);
         mContext = context;
         if (getActionBar() != null)
             getActionBar().setTitle(R.string.title_events);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        onAttachFragment(this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -88,13 +100,16 @@ public class Events extends DomoticzRecyclerFragment implements DomoticzFragment
     @DebugLog
     public void onConnectionOk() {
         super.showSpinner(true);
-        processUserVariables();
+        processEvents();
     }
 
-    private void processUserVariables() {
-        if (mSwipeRefreshLayout != null)
-            mSwipeRefreshLayout.setRefreshing(true);
-        new GetCachedDataTask().execute();
+    private void processEvents() {
+        try {
+            if (mSwipeRefreshLayout != null)
+                mSwipeRefreshLayout.setRefreshing(true);
+            new GetCachedDataTask().execute();
+        } catch (Exception ex) {
+        }
     }
 
     private void createListView(ArrayList<EventInfo> mEventInfos) {
@@ -103,10 +118,31 @@ public class Events extends DomoticzRecyclerFragment implements DomoticzFragment
                 adapter = new EventsAdapter(mContext, mDomoticz, mEventInfos, new EventsClickListener() {
                     @Override
                     @DebugLog
-                    public void onEventClick(final int id, boolean action) {
-                        UsefulBits.showSnackbar(mContext, coordinatorLayout, R.string.action_not_supported_yet, Snackbar.LENGTH_SHORT);
-                        if (getActivity() instanceof MainActivity)
-                            ((MainActivity) getActivity()).Talk(R.string.action_not_supported_yet);
+                    public void onEventClick(final int idx, boolean action) {
+                        UserInfo user = getCurrentUser(mContext, mDomoticz);
+                        if (user != null && user.getRights() <= 1) {
+                            UsefulBits.showSnackbar(mContext, coordinatorLayout, mContext.getString(R.string.security_no_rights), Snackbar.LENGTH_SHORT);
+                            if (getActivity() instanceof MainActivity)
+                                ((MainActivity) getActivity()).Talk(R.string.security_no_rights);
+                            refreshFragment();
+                            return;
+                        }
+
+                        int jsonAction = action ? DomoticzValues.Event.Action.ON : DomoticzValues.Event.Action.OFF;
+                        int jsonUrl = DomoticzValues.Json.Url.Set.EVENTS_UPDATE_STATUS;
+                        mDomoticz.setAction(idx, jsonUrl, jsonAction, 0, null, new setCommandReceiver() {
+                            @Override
+                            @DebugLog
+                            public void onReceiveResult(String result) {
+                                successHandling(result, false);
+                            }
+
+                            @Override
+                            @DebugLog
+                            public void onError(Exception error) {
+                                errorHandling(error);
+                            }
+                        });
                     }
                 });
                 alphaSlideIn = new SlideInBottomAnimationAdapter(adapter);
@@ -121,7 +157,7 @@ public class Events extends DomoticzRecyclerFragment implements DomoticzFragment
                 @Override
                 @DebugLog
                 public void onRefresh() {
-                    processUserVariables();
+                    processEvents();
                 }
             });
             super.showSpinner(false);
@@ -147,7 +183,10 @@ public class Events extends DomoticzRecyclerFragment implements DomoticzFragment
         ArrayList<EventInfo> cacheEventInfos = null;
 
         protected Boolean doInBackground(Boolean... geto) {
-            if (!mPhoneConnectionUtil.isNetworkAvailable()) {
+            if (mContext == null) return false;
+            if (mPhoneConnectionUtil == null)
+                mPhoneConnectionUtil = new PhoneConnectionUtil(mContext);
+            if (mPhoneConnectionUtil != null && !mPhoneConnectionUtil.isNetworkAvailable()) {
                 try {
                     cacheEventInfos = (ArrayList<EventInfo>) SerializableManager.readSerializedObject(mContext, "Events");
                 } catch (Exception ex) {

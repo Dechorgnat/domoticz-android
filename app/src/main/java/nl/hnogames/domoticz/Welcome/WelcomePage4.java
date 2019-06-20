@@ -22,7 +22,6 @@
 package nl.hnogames.domoticz.Welcome;
 
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,10 +30,12 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
+import androidx.fragment.app.Fragment;
 import nl.hnogames.domoticz.R;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.app.AppController;
 import nl.hnogames.domoticzapi.Containers.DevicesInfo;
+import nl.hnogames.domoticzapi.Containers.VersionInfo;
 import nl.hnogames.domoticzapi.Domoticz;
 import nl.hnogames.domoticzapi.Interfaces.DevicesReceiver;
 import nl.hnogames.domoticzapi.Interfaces.VersionReceiver;
@@ -56,9 +57,9 @@ public class WelcomePage4 extends Fragment {
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_welcome4, container, false);
 
-        please_wait_layout = (LinearLayout) v.findViewById(R.id.layout_please_wait);
-        result_layout = (LinearLayout) v.findViewById(R.id.layout_result);
-        result = (TextView) v.findViewById(R.id.result);
+        please_wait_layout = v.findViewById(R.id.layout_please_wait);
+        result_layout = v.findViewById(R.id.layout_result);
+        result = v.findViewById(R.id.result);
 
         return v;
     }
@@ -80,17 +81,16 @@ public class WelcomePage4 extends Fragment {
 
         if (!mDomoticz.isConnectionDataComplete(mServerUtil.getActiveServer())) {
             setResultText(getString(R.string.welcome_msg_connectionDataIncomplete) + "\n\n"
-                    + getString(R.string.welcome_msg_correctOnPreviousPage));
+                + getString(R.string.welcome_msg_correctOnPreviousPage));
         } else if (!mDomoticz.isUrlValid(mServerUtil.getActiveServer())) {
             setResultText(getString(R.string.welcome_msg_connectionDataInvalid) + "\n\n"
-                    + getString(R.string.welcome_msg_correctOnPreviousPage));
+                + getString(R.string.welcome_msg_correctOnPreviousPage));
         } else {
             mDomoticz.getServerVersion(new VersionReceiver() {
                 @Override
-                public void onReceiveVersion(String version) {
+                public void onReceiveVersion(VersionInfo version) {
                     if (isAdded()) {
-                        tempText = getString(R.string.welcome_msg_serverVersion) + ": " + version;
-
+                        tempText = getString(R.string.welcome_msg_serverVersion) + ": " + version.getVersion();
                         mDomoticz.getDevices(new DevicesReceiver() {
                             @Override
                             public void onReceiveDevices(ArrayList<DevicesInfo> mDevicesInfo) {

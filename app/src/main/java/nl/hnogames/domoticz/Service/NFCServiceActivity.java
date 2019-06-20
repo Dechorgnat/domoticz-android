@@ -23,12 +23,11 @@ package nl.hnogames.domoticz.Service;
 
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 
+import androidx.appcompat.app.AppCompatActivity;
 import hugo.weaving.DebugLog;
 import nl.hnogames.domoticz.Containers.NFCInfo;
 import nl.hnogames.domoticz.NFCSettingsActivity;
@@ -55,7 +54,6 @@ public class NFCServiceActivity extends AppCompatActivity {
             setTheme(R.style.AppThemeDark);
 
         super.onCreate(savedInstanceState);
-
         if (mSharedPrefs.isNFCEnabled()) {
             ArrayList<NFCInfo> nfcList = mSharedPrefs.getNFCList();
             //if (getIntent().getAction().equals(NfcAdapter.ACTION_TECH_DISCOVERED)) {
@@ -70,7 +68,7 @@ public class NFCServiceActivity extends AppCompatActivity {
                 }
             }
             if (foundNFC != null && foundNFC.isEnabled()) {
-                handleSwitch(foundNFC.getSwitchIdx(), foundNFC.getSwitchPassword(), -1, foundNFC.getValue());
+                handleSwitch(foundNFC.getSwitchIdx(), foundNFC.getSwitchPassword(), foundNFC.getValue(), foundNFC.isSceneOrGroup());
             } else {
                 finish();
             }
@@ -80,7 +78,7 @@ public class NFCServiceActivity extends AppCompatActivity {
         }
     }
 
-    private void handleSwitch(final int idx, final String password, final int inputJSONAction, final String value) {
+    private void handleSwitch(final int idx, final String password, final String value, final boolean isSceneOrGroup) {
         if (domoticz == null)
             domoticz = new Domoticz(this, AppController.getInstance().getRequestQueue());
 
@@ -91,16 +89,24 @@ public class NFCServiceActivity extends AppCompatActivity {
 
             @Override
             public void onReceiveDevice(DevicesInfo mDevicesInfo) {
+                if (mDevicesInfo == null)
+                    return;
+
                 int jsonAction;
                 int jsonUrl = DomoticzValues.Json.Url.Set.SWITCHES;
                 int jsonValue = 0;
 
-                if (inputJSONAction < 0) {
+                if (!isSceneOrGroup) {
                     if (mDevicesInfo.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.BLINDS ||
-                            mDevicesInfo.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.BLINDPERCENTAGE) {
-                        if (!mDevicesInfo.getStatusBoolean())
+                        mDevicesInfo.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.BLINDPERCENTAGE ||
+                        mDevicesInfo.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.DOORLOCKINVERTED) {
+                        if (!mDevicesInfo.getStatusBoolean()) {
                             jsonAction = DomoticzValues.Device.Switch.Action.OFF;
-                        else {
+                            if (!UsefulBits.isEmpty(value)) {
+                                jsonAction = DomoticzValues.Device.Dimmer.Action.DIM_LEVEL;
+                                jsonValue = 0;
+                            }
+                        } else {
                             jsonAction = DomoticzValues.Device.Switch.Action.ON;
                             if (!UsefulBits.isEmpty(value)) {
                                 jsonAction = DomoticzValues.Device.Dimmer.Action.DIM_LEVEL;
@@ -114,54 +120,47 @@ public class NFCServiceActivity extends AppCompatActivity {
                                 jsonAction = DomoticzValues.Device.Dimmer.Action.DIM_LEVEL;
                                 jsonValue = getSelectorValue(mDevicesInfo, value);
                             }
-                        } else
+                        } else {
                             jsonAction = DomoticzValues.Device.Switch.Action.OFF;
-                    }
-                } else {
-                    if (mDevicesInfo.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.BLINDS ||
-                            mDevicesInfo.getSwitchTypeVal() == DomoticzValues.Device.Type.Value.BLINDPERCENTAGE) {
-                        if (inputJSONAction == 1)
-                            jsonAction = DomoticzValues.Device.Switch.Action.OFF;
-                        else {
-                            jsonAction = DomoticzValues.Device.Switch.Action.ON;
                             if (!UsefulBits.isEmpty(value)) {
                                 jsonAction = DomoticzValues.Device.Dimmer.Action.DIM_LEVEL;
-                                jsonValue = getSelectorValue(mDevicesInfo, value);
+                                jsonValue = 0;
                             }
                         }
-                    } else {
-                        if (inputJSONAction == 1) {
-                            jsonAction = DomoticzValues.Device.Switch.Action.ON;
-                            if (!UsefulBits.isEmpty(value)) {
-                                jsonAction = DomoticzValues.Device.Dimmer.Action.DIM_LEVEL;
-                                jsonValue = getSelectorValue(mDevicesInfo, value);
-                            }
-                        } else
-                            jsonAction = DomoticzValues.Device.Switch.Action.OFF;
                     }
-                }
+                    switch (mDevicesInfo.getSwitchTypeVal()) {
+                        case DomoticzValues.Device.Type.Value.PUSH_ON_BUTTON:
+                            jsonAction = DomoticzValues.Device.Switch.Action.ON;
+                            break;
+                        case DomoticzValues.Device.Type.Value.PUSH_OFF_BUTTON:
+                            jsonAction = DomoticzValues.Device.Switch.Action.OFF;
+                            break;
+                    }
+                } else {
+                    jsonUrl = DomoticzValues.Json.Url.Set.SCENES;
+                    if (!mDevicesInfo.getStatusBoolean()) {
+                        jsonAction = DomoticzValues.Scene.Action.ON;
+                    } else
+                        jsonAction = DomoticzValues.Scene.Action.OFF;
 
-                switch (mDevicesInfo.getSwitchTypeVal()) {
-                    case DomoticzValues.Device.Type.Value.PUSH_ON_BUTTON:
-                        jsonAction = DomoticzValues.Device.Switch.Action.ON;
-                        break;
-                    case DomoticzValues.Device.Type.Value.PUSH_OFF_BUTTON:
-                        jsonAction = DomoticzValues.Device.Switch.Action.OFF;
-                        break;
+                    if (mDevicesInfo.getType().equals(DomoticzValues.Scene.Type.SCENE))
+                        jsonAction = DomoticzValues.Scene.Action.ON;
                 }
 
                 domoticz.setAction(idx, jsonUrl, jsonAction, jsonValue, password, new setCommandReceiver() {
                     @Override
                     @DebugLog
                     public void onReceiveResult(String result) {
-                        Log.d(TAG, result);
+                        if (!UsefulBits.isEmpty(result))
+                            Log.d(TAG, result);
                         finish();
                     }
 
                     @Override
                     @DebugLog
                     public void onError(Exception error) {
-                        Log.d(TAG, error.getMessage());
+                        if (error != null && !UsefulBits.isEmpty(error.getMessage()))
+                            Log.d(TAG, error.getMessage());
                         finish();
                     }
                 });
@@ -169,18 +168,22 @@ public class NFCServiceActivity extends AppCompatActivity {
 
             @Override
             public void onError(Exception error) {
-                Log.d(TAG, error.getMessage());
+                if (error != null && !UsefulBits.isEmpty(error.getMessage()))
+                    Log.d(TAG, error.getMessage());
                 finish();
             }
 
-        }, idx, false);
+        }, idx, isSceneOrGroup);
     }
 
     private int getSelectorValue(DevicesInfo mDevicesInfo, String value) {
+        if (mDevicesInfo == null || mDevicesInfo.getLevelNames() == null)
+            return 0;
+
         int jsonValue = 0;
         if (!UsefulBits.isEmpty(value)) {
-            String[] levelNames = mDevicesInfo.getLevelNames();
-            int counter = 10;
+            ArrayList<String> levelNames = mDevicesInfo.getLevelNames();
+            int counter = 0;
             for (String l : levelNames) {
                 if (l.equals(value))
                     break;
@@ -190,18 +193,5 @@ public class NFCServiceActivity extends AppCompatActivity {
             jsonValue = counter;
         }
         return jsonValue;
-    }
-
-    private void onErrorHandling(Exception error) {
-        if (error != null) {
-            Toast.makeText(
-                    this,
-                    "Domoticz: " +
-                            getString(R.string.unable_to_get_switches),
-                    Toast.LENGTH_SHORT).show();
-
-            if (domoticz != null && UsefulBits.isEmpty(domoticz.getErrorMessage(error)))
-                Log.e(TAG, domoticz.getErrorMessage(error));
-        }
     }
 }

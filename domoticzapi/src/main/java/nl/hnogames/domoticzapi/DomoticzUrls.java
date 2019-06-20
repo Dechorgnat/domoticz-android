@@ -108,17 +108,20 @@ public class DomoticzUrls {
                 actionUrl = DomoticzValues.FavoriteAction.OFF;
                 break;
 
-            case DomoticzValues.Event.Action.OFF:
-            case DomoticzValues.Event.Action.ON:
-                actionUrl = DomoticzValues.Url.System.EVENTSTATUS + String.valueOf(value);
-                break;
-
             case DomoticzValues.Device.Dimmer.Action.DIM_LEVEL:
                 actionUrl = DomoticzValues.Url.Switch.DIM_LEVEL + String.valueOf(value);
                 break;
 
             case DomoticzValues.Device.Dimmer.Action.COLOR:
                 actionUrl = DomoticzValues.Url.Switch.COLOR;
+                break;
+
+            case DomoticzValues.Device.Dimmer.Action.KELVIN:
+                actionUrl = DomoticzValues.Url.Switch.KELVIN + String.valueOf(value);
+                break;
+
+            case DomoticzValues.Device.Dimmer.Action.WWCOLOR:
+                actionUrl = DomoticzValues.Url.Switch.WWCOLOR;
                 break;
 
             case DomoticzValues.Device.ModalSwitch.Action.AUTO:
@@ -143,6 +146,14 @@ public class DomoticzUrls {
 
             case DomoticzValues.Device.ModalSwitch.Action.HEATING_OFF:
                 actionUrl = DomoticzValues.Url.ModalAction.HEATING_OFF;
+                break;
+
+            case DomoticzValues.Event.Action.ON:
+                actionUrl = DomoticzValues.Url.Event.ON;
+                break;
+
+            case DomoticzValues.Event.Action.OFF:
+                actionUrl = DomoticzValues.Url.Event.OFF;
                 break;
 
             default:
@@ -192,16 +203,41 @@ public class DomoticzUrls {
                         + DomoticzValues.Url.Favorite.VALUE + actionUrl;
                 break;
 
-            case DomoticzValues.Json.Url.Set.EVENT:
-                url = DomoticzValues.Url.System.EVENTACTION;
-                jsonUrl = url
-                        + String.valueOf(idx)
-                        + actionUrl
-                        + "&xml=";
-                break;
-
             case DomoticzValues.Json.Url.Set.RGBCOLOR:
                 url = DomoticzValues.Url.System.RGBCOLOR;
+                jsonUrl = url
+                        + String.valueOf(idx)
+                        + actionUrl;
+                break;
+
+            case DomoticzValues.Json.Url.Set.KELVIN:
+                url = DomoticzValues.Url.System.KELVIN;
+                jsonUrl = url
+                        + String.valueOf(idx)
+                        + actionUrl;
+                break;
+
+            case DomoticzValues.Json.Url.Set.WWCOLOR:
+                url = DomoticzValues.Url.System.RGBCOLOR;
+                jsonUrl = url
+                    + String.valueOf(idx)
+                    + actionUrl;
+                break;
+
+            case DomoticzValues.Json.Url.Set.NIGHTLIGHT:
+                url = DomoticzValues.Url.System.NIGHTLIGHT;
+                jsonUrl = url
+                    + String.valueOf(idx);
+                break;
+
+            case DomoticzValues.Json.Url.Set.FULLLIGHT:
+                url = DomoticzValues.Url.System.FULLLIGHT;
+                jsonUrl = url
+                    + String.valueOf(idx);
+                break;
+
+            case DomoticzValues.Json.Url.Set.EVENTS_UPDATE_STATUS:
+                url = DomoticzValues.Url.System.EVENTS_UPDATE_STATUS;
                 jsonUrl = url
                         + String.valueOf(idx)
                         + actionUrl;
@@ -209,16 +245,19 @@ public class DomoticzUrls {
         }
 
         String fullString = buildUrl.append(protocol)
-                .append(baseUrl).append(":")
-                .append(port)
+                .append(baseUrl)
+                .append(!port.equals("80") ? ":" + port: "")
                 .append(directory.isEmpty() ? "" : "/" + directory)
                 .append(jsonUrl).toString();
 
         return fullString;
     }
 
-
     public String constructGetUrl(int jsonGetUrl) {
+        return constructGetUrl(jsonGetUrl, false, null, null);
+    }
+
+    public String constructGetUrl(int jsonGetUrl, boolean withPass, String username, String password) {
         if (domoticz == null)
             return null;
 
@@ -233,7 +272,6 @@ public class DomoticzUrls {
             url = mServerUtil.getActiveServer().getLocalServerUrl();
             port = mServerUtil.getActiveServer().getLocalServerPort();
             directory = mServerUtil.getActiveServer().getLocalServerDirectory();
-
         } else {
             if (mServerUtil.getActiveServer().getRemoteServerSecure())
                 protocol = DomoticzValues.Url.Protocol.HTTPS;
@@ -242,17 +280,24 @@ public class DomoticzUrls {
             url = mServerUtil.getActiveServer().getRemoteServerUrl();
             port = mServerUtil.getActiveServer().getRemoteServerPort();
             directory = mServerUtil.getActiveServer().getRemoteServerDirectory();
-
         }
         jsonUrl = getJsonGetUrl(jsonGetUrl);
 
-        String fullString = buildUrl.append(protocol)
-                .append(url).append(":")
-                .append(port)
-                .append(directory.isEmpty() ? "" : "/" + directory)
-                .append(jsonUrl).toString();
-
-        return fullString;
+        if(!withPass) {
+            return buildUrl.append(protocol)
+                    .append(url)
+                    .append(!port.equals("80") ? ":" + port: "")
+                    .append(directory.isEmpty() ? "" : "/" + directory)
+                    .append(jsonUrl).toString();
+        }
+        else{
+            return buildUrl.append(protocol)
+                    .append(username).append(":").append(password).append("@")
+                    .append(url)
+                    .append(!port.equals("80") ? ":" + port: "")
+                    .append(directory.isEmpty() ? "" : "/" + directory)
+                    .append(jsonUrl).toString();
+        }
     }
 
     public String getJsonGetUrl(int jsonGetUrl) {
@@ -262,11 +307,14 @@ public class DomoticzUrls {
             case DomoticzValues.Json.Url.Request.LANGUAGE:
                 url = DomoticzValues.Url.System.LANGUAGE_TRANSLATIONS;
                 break;
+            case DomoticzValues.Json.Url.Request.UPDATE_DOWNLOAD_UPDATE:
+                url = DomoticzValues.Url.System.UPDATE_DOWNLOAD_UPDATE;
+                break;
             case DomoticzValues.Json.Url.Request.UPDATE_DOMOTICZ_SERVER:
                 url = DomoticzValues.Url.System.UPDATE_DOMOTICZ_SERVER;
                 break;
             case DomoticzValues.Json.Url.Request.UPDATE_DOWNLOAD_READY:
-                url = DomoticzValues.Url.System.DOWNLOAD_READY;
+                url = DomoticzValues.Url.System.UPDATE_DOWNLOAD_READY;
                 break;
             case DomoticzValues.Json.Url.Request.VERSION:
                 url = DomoticzValues.Url.Category.VERSION;
@@ -339,6 +387,10 @@ public class DomoticzUrls {
                 url = DomoticzValues.Url.System.SETSECURITY;
                 break;
 
+            case DomoticzValues.Json.Url.Request.SUNRISE:
+                url = DomoticzValues.Url.System.SUNRISE;
+                break;
+
             case DomoticzValues.Json.Url.Request.UPDATE:
                 url = DomoticzValues.Url.System.UPDATE;
                 break;
@@ -361,10 +413,6 @@ public class DomoticzUrls {
 
             case DomoticzValues.Json.Url.Request.LOGOFF:
                 url = DomoticzValues.Url.System.LOGOFF;
-                break;
-
-            case DomoticzValues.Json.Url.Request.EVENTXML:
-                url = DomoticzValues.Url.System.EVENTXML;
                 break;
 
             case DomoticzValues.Json.Url.Request.SETTINGS:
@@ -401,6 +449,10 @@ public class DomoticzUrls {
 
             case DomoticzValues.Json.Url.Request.UPDATEVAR:
                 url = DomoticzValues.Url.UserVariable.UPDATE;
+                break;
+
+            case DomoticzValues.Json.Url.Request.CHECKLOGIN:
+                url = DomoticzValues.Url.Security.CHECKLOGIN;
                 break;
 
             default:

@@ -21,7 +21,7 @@
 
 package nl.hnogames.domoticzapi.Containers;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.google.gson.GsonBuilder;
 
@@ -30,6 +30,7 @@ import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.regex.Pattern;
 
@@ -70,10 +71,13 @@ public class DevicesInfo implements Comparable, Serializable {
     private String Counter;
     private String LevelNames;
     private String Usage;
+    private String UsageDeliv;
     private String Image;
     private String Data;
     private String Timers;
 
+    private String Rain;
+    private String RainRate;
     private String ForecastStr;
     private String HumidityStatus;
     private String DirectionStr;
@@ -99,15 +103,47 @@ public class DevicesInfo implements Comparable, Serializable {
             level = 0;
         }
 
-        if (row.has("ForecastStr")) ForecastStr = row.getString("ForecastStr");
-        if (row.has("HumidityStatus")) HumidityStatus = row.getString("HumidityStatus");
-        if (row.has("Direction")) Direction = row.getString("Direction");
-        if (row.has("DirectionStr")) DirectionStr = row.getString("DirectionStr");
-        if (row.has("Chill")) Chill = row.getString("Chill");
-        if (row.has("Speed")) Speed = row.getString("Speed");
-        if (row.has("DewPoint")) DewPoint = row.getLong("DewPoint");
-        if (row.has("Temp")) Temp = row.getLong("Temp");
-        if (row.has("Barometer")) Barometer = row.getInt("Barometer");
+        if (row.has("Rain"))
+            Rain = row.getString("Rain");
+        if (row.has("RainRate"))
+            RainRate = row.getString("RainRate");
+        if (row.has("ForecastStr"))
+            ForecastStr = row.getString("ForecastStr");
+        if (row.has("HumidityStatus"))
+            HumidityStatus = row.getString("HumidityStatus");
+        if (row.has("Direction"))
+            Direction = row.getString("Direction");
+        if (row.has("DirectionStr"))
+            DirectionStr = row.getString("DirectionStr");
+        if (row.has("Chill"))
+            Chill = row.getString("Chill");
+        if (row.has("Speed"))
+            Speed = row.getString("Speed");
+
+        if (row.has("DewPoint")) {
+            try {
+                DewPoint = row.getLong("DewPoint");
+            } catch (Exception ex) {
+                DewPoint = 0;
+            }
+        }
+        if (row.has("Temp")) {
+            try {
+                Temp = row.getLong("Temp");
+            } catch (Exception ex) {
+                Temp = 0;
+            }
+        }
+        if (row.has("Barometer")) {
+            try {
+                Barometer = row.getInt("Barometer");
+            } catch (Exception ex) {
+                Barometer = 0;
+            }
+        }
+
+        if (row.has("Description"))
+            Description = row.getString("Description");
 
         try {
             if (row.has("MaxDimLevel"))
@@ -129,14 +165,19 @@ public class DevicesInfo implements Comparable, Serializable {
             Counter = row.getString("Counter");
         if (row.has("Image"))
             Image = row.getString("Image");
-
-        if (row.has("LevelNames"))
+        if (row.has("LevelNames")) {
             LevelNames = row.getString("LevelNames");
+            if(UsefulBits.isBase64Encoded(LevelNames))
+                LevelNames = UsefulBits.decodeBase64(LevelNames);
+        }
+
         if (row.has("CounterToday"))
             CounterToday = row.getString("CounterToday");
 
         if (row.has("Usage"))
             Usage = row.getString("Usage");
+        if (row.has("UsageDeliv"))
+            UsageDeliv = row.getString("UsageDeliv");
 
         try {
             if (row.has("Status"))
@@ -261,7 +302,6 @@ public class DevicesInfo implements Comparable, Serializable {
         else this.Favorite = 0;
     }
 
-
     public double getTemperature() {
         return temp;
     }
@@ -280,6 +320,9 @@ public class DevicesInfo implements Comparable, Serializable {
 
     public String getUsage() {
         return Usage;
+    }
+    public String getUsageDeliv() {
+        return UsageDeliv;
     }
 
     public String getTimers() {
@@ -302,13 +345,13 @@ public class DevicesInfo implements Comparable, Serializable {
         this.status = status;
     }
 
-    public String[] getLevelNames() {
+    public ArrayList<String> getLevelNames() {
         if (UsefulBits.isEmpty(LevelNames))
             return null;
         String[] names = Pattern.compile("|", Pattern.LITERAL).split(LevelNames);
-        String[] newNames = new String[names.length - 1];
-        for (int i = 1; i < names.length; i++) {
-            newNames[i - 1] = names[i];
+        ArrayList<String> newNames = new ArrayList<String>();
+        for (int i = 0; i < names.length; i++) {
+            newNames.add(names[i]);
         }
         return newNames;
     }
@@ -316,10 +359,12 @@ public class DevicesInfo implements Comparable, Serializable {
     public boolean getStatusBoolean() {
         try {
             boolean statusBoolean = true;
-
             if (status.equalsIgnoreCase(DomoticzValues.Device.Blind.State.OFF) || status.equalsIgnoreCase(DomoticzValues.Device.Blind.State.CLOSED))
                 statusBoolean = false;
-
+            else if ((status.equalsIgnoreCase(DomoticzValues.Device.Door.State.UNLOCKED) && switchTypeVal == DomoticzValues.Device.Type.Value.DOORLOCK) ||
+                    (status.equalsIgnoreCase(DomoticzValues.Device.Door.State.UNLOCKED) && switchTypeVal == DomoticzValues.Device.Type.Value.DOORLOCKINVERTED) ||
+                    (status.equalsIgnoreCase(DomoticzValues.Device.Door.State.OPEN) && switchTypeVal == DomoticzValues.Device.Type.Value.BLINDINVERTED))
+                statusBoolean = false;
             this.statusBoolean = statusBoolean;
             return statusBoolean;
         } catch (Exception ex) {
@@ -416,6 +461,13 @@ public class DevicesInfo implements Comparable, Serializable {
 
     public String getData() {
         return Data;
+    }
+
+    public boolean isSceneOrGroup() {
+        if (getType().equals(DomoticzValues.Scene.Type.GROUP) || getType().equals(DomoticzValues.Scene.Type.SCENE))
+            return true;
+        else
+            return false;
     }
 
     public String getLastUpdate() {
@@ -524,6 +576,14 @@ public class DevicesInfo implements Comparable, Serializable {
 
     public long getTemp() {
         return Temp;
+    }
+
+    public String getRain() {
+        return Rain;
+    }
+
+    public String getRainRate() {
+        return RainRate;
     }
 
     public void setNotifications(boolean notifications) {

@@ -21,12 +21,14 @@
 
 package nl.hnogames.domoticzapi.Containers;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class TemperatureInfo implements Comparable, Serializable {
 
@@ -59,8 +61,14 @@ public class TemperatureInfo implements Comparable, Serializable {
             HardwareID = row.getInt("HardwareID");
         if (row.has("HardwareName"))
             HardwareName = row.getString("HardwareName");
-        if (row.has("Temp"))
-            Temp = row.getDouble("Temp");
+
+        try {
+            if (row.has("Temp"))
+                Temp = row.getDouble("Temp");
+        }catch(Exception ex){
+            Temp = 0;
+        }
+
         if (row.has("LastUpdate"))
             LastUpdate = row.getString("LastUpdate");
         if (row.has("Status"))
@@ -69,8 +77,15 @@ public class TemperatureInfo implements Comparable, Serializable {
             TypeImg = row.getString("TypeImg");
         if (row.has("DirectionStr"))
             Direction = row.getString("DirectionStr");
-        if (row.has("SetPoint"))
-            setPoint = row.getDouble("SetPoint");
+
+        if (row.has("SetPoint")) {
+            try {
+                setPoint = row.getDouble("SetPoint");
+            } catch (Exception ex) {
+                setPoint = 0;
+            }
+        }
+
         if (row.has("Name"))
             Name = row.getString("Name");
         if (row.has("Description"))
@@ -199,6 +214,17 @@ public class TemperatureInfo implements Comparable, Serializable {
 
     public String getLastUpdate() {
         return LastUpdate;
+    }
+
+    public Date getLastUpdateDateTime() {
+        //Time format: 2016-01-30 12:48:37
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        try {
+            return format.parse(LastUpdate);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void setLastUpdate(String lastUpdate) {

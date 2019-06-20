@@ -22,19 +22,17 @@
 package nl.hnogames.domoticz.UI;
 
 import android.content.Context;
-import android.graphics.Color;
-import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
 import com.triggertrap.seekarc.SeekArc;
 
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import nl.hnogames.domoticz.R;
 import nl.hnogames.domoticz.Utils.SharedPrefUtil;
 import nl.hnogames.domoticz.Utils.UsefulBits;
@@ -45,14 +43,6 @@ import nl.hnogames.domoticzapi.Utils.ServerUtil;
 public class TemperatureDialog implements MaterialDialog.SingleButtonCallback {
 
     private final MaterialDialog.Builder mdb;
-    @SuppressWarnings("FieldCanBeLocal")
-    private final int minCelsiusTemp = 10;
-    @SuppressWarnings("FieldCanBeLocal")
-    private final int maxCelsiusTemp = 30;
-    @SuppressWarnings("FieldCanBeLocal")
-    private final int minFahrenheitTemp = 50;
-    @SuppressWarnings("FieldCanBeLocal")
-    private final int maxFahrenheitTemp = 90;
     private final int maxTemp;
     private int minTemp;
 
@@ -63,28 +53,19 @@ public class TemperatureDialog implements MaterialDialog.SingleButtonCallback {
     private TextView temperatureText;
     private String tempSign = UsefulBits.getDegreeSymbol() + "C";
     private boolean isFahrenheit = false;
+    private SharedPrefUtil mSharedPrefUtil;
 
     public TemperatureDialog(Context mContext, double temp) {
         this.mContext = mContext;
+        if (mSharedPrefUtil == null)
+            mSharedPrefUtil = new SharedPrefUtil(mContext);
 
-        if ((new SharedPrefUtil(mContext)).darkThemeEnabled()) {
-            mdb = new MaterialDialog.Builder(mContext)
-                    .titleColorRes(R.color.white)
-                    .contentColor(Color.WHITE) // notice no 'res' postfix for literal color
-                    .dividerColorRes(R.color.white)
-                    .backgroundColorRes(R.color.primary)
-                    .positiveColorRes(R.color.white)
-                    .neutralColorRes(R.color.white)
-                    .negativeColorRes(R.color.white)
-                    .widgetColorRes(R.color.white)
-                    .buttonRippleColorRes(R.color.white);
-        } else
-            mdb = new MaterialDialog.Builder(mContext);
+        mdb = new MaterialDialog.Builder(mContext);
         mdb.customView(R.layout.dialog_temperature, false)
-                .negativeText(android.R.string.cancel)
-                .theme((new SharedPrefUtil(mContext)).darkThemeEnabled() ? Theme.DARK : Theme.LIGHT)
-                .positiveText(android.R.string.ok)
-                .onAny(this);
+            .negativeText(android.R.string.cancel)
+            .theme(mSharedPrefUtil.darkThemeEnabled() ? Theme.DARK : Theme.LIGHT)
+            .positiveText(android.R.string.ok)
+            .onAny(this);
 
         ConfigInfo configInfo = new ServerUtil(mContext).getActiveServer().getConfigInfo(mContext);
         if (configInfo != null) {
@@ -92,23 +73,10 @@ public class TemperatureDialog implements MaterialDialog.SingleButtonCallback {
             if (!UsefulBits.isEmpty(configInfo.getTempSign()) && !configInfo.getTempSign().equals(DomoticzValues.Temperature.Sign.CELSIUS)) {
                 isFahrenheit = true;
             }
-        } else
-            Toast.makeText(mContext,
-                    "Unable to get the server configuration info!", Toast.LENGTH_LONG).show();
-
-        if (isFahrenheit) {
-            minTemp = minFahrenheitTemp;
-            maxTemp = maxFahrenheitTemp;
-            if (temp < minFahrenheitTemp)
-                temp = minFahrenheitTemp;     // Fahrenheit min = 50 (10 degrees Celsius)
-            if (temp > maxFahrenheitTemp)
-                temp = maxFahrenheitTemp;     // Fahrenheit max = 90 (32 degrees Celsius)
-        } else {
-            minTemp = minCelsiusTemp;
-            maxTemp = maxCelsiusTemp;
-            if (temp < minCelsiusTemp) temp = minCelsiusTemp;           // Celsius min = 10
-            if (temp > maxCelsiusTemp) temp = maxCelsiusTemp;           // Celsius max = 30
         }
+
+        minTemp = mSharedPrefUtil.getTemperatureSetMin(configInfo != null ? configInfo.getTempSign() : "C");
+        maxTemp = mSharedPrefUtil.getTemperatureSetMax(configInfo != null ? configInfo.getTempSign() : "C");
         currentTemperature = temp;
     }
 
@@ -117,37 +85,29 @@ public class TemperatureDialog implements MaterialDialog.SingleButtonCallback {
         final MaterialDialog md = mdb.build();
         View view = md.getCustomView();
 
-        temperatureControl = (SeekArc) view.findViewById(R.id.seekTemperature);
-        temperatureText = (TextView) view.findViewById(R.id.seekTempProgress);
-        final TextView temperatureSign = (TextView) view.findViewById(R.id.seekTempSign);
+        temperatureControl = view.findViewById(R.id.seekTemperature);
+        temperatureText = view.findViewById(R.id.seekTempProgress);
+        final TextView temperatureSign = view.findViewById(R.id.seekTempSign);
         temperatureSign.setText(tempSign);
 
-        Button bntPlus = (Button) view.findViewById(R.id.plus);
-        Button btnMin = (Button) view.findViewById(R.id.min);
+        Button bntPlus = view.findViewById(R.id.plus);
+        Button btnMin = view.findViewById(R.id.min);
 
-        if ((new SharedPrefUtil(mContext)).darkThemeEnabled()) {
-            bntPlus.setBackground(ContextCompat.getDrawable(mContext, R.drawable.button_status_dark));
-            btnMin.setBackground(ContextCompat.getDrawable(mContext, R.drawable.button_status_dark));
+        if (mSharedPrefUtil.darkThemeEnabled()) {
+            btnMin.setTextColor(ContextCompat.getColor(mContext, R.color.white));
+            bntPlus.setTextColor(ContextCompat.getColor(mContext, R.color.white));
         }
 
         final String text = String.valueOf(currentTemperature);
         temperatureText.setText(text);
-
-        if (!isFahrenheit) temperatureControl.setMax((maxCelsiusTemp - minCelsiusTemp) * 2);
-        else temperatureControl.setMax((maxFahrenheitTemp - minFahrenheitTemp) * 2);
+        temperatureControl.setMax((maxTemp - minTemp) * 2);
 
         int arcProgress = tempToProgress(currentTemperature);
         temperatureControl.setProgress(arcProgress);
-        /*
-        ObjectAnimator animation = ObjectAnimator.ofInt(temperatureControl, "progress", arcProgress);
-        animation.setDuration(1000);                            // 1 second
-        animation.setInterpolator(new DecelerateInterpolator());
-        animation.start();
-        */
 
         temperatureControl.setOnSeekArcChangeListener(new SeekArc.OnSeekArcChangeListener() {
             @Override
-            public void onProgressChanged(SeekArc seekArc, int progress, boolean byUser) {
+            public void onProgressChanged(SeekArc seekArc, int progress, boolean fromUser) {
                 double temp = progressToTemp(progress);
                 temperatureText.setText(String.valueOf(temp));
                 currentTemperature = temp;
@@ -161,6 +121,11 @@ public class TemperatureDialog implements MaterialDialog.SingleButtonCallback {
             @Override
             public void onStopTrackingTouch(SeekArc seekArc) {
                 temperatureText.setText(String.valueOf(progressToTemp(seekArc.getProgress())));
+            }
+
+            @Override
+            public boolean onTrackingLeap(SeekArc seekArc, boolean isRising) {
+                return false;
             }
         });
 
